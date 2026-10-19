@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useUploadThing } from "@/lib/uploadthing"
 import {
   Loader2, UploadCloud, X, ChevronLeft, ChevronRight, Star,
-  CheckCircle, Home, Image as ImageIcon,
+  CheckCircle, Home,
 } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import MobileNav from "@/components/MobileNav"

@@ -9,6 +9,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**.ufs.io" },
       { protocol: "https", hostname: "**.ufslive.com" },
       { protocol: "https", hostname: "*.ufs.sh" },
+      { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
   experimental: {
