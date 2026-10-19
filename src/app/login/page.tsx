@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
-import { Home, Phone, Lock } from 'lucide-react'
+import { Home, Mail, Lock } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,17 +23,14 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const rawPhone = phone.replace(/[^0-9]/g, '')
-      const cleanPhone = rawPhone.startsWith('998') ? rawPhone : '998' + rawPhone
-
       const result = await signIn('credentials', {
-        phone: cleanPhone,
+        email: email.trim().toLowerCase(),
         password,
         redirect: false,
       })
 
       if (result?.error) {
-        setError("Telefon raqam yoki parol noto'g'ri")
+        setError("Email yoki parol noto'g'ri")
       } else {
         router.push('/')
         router.refresh()
@@ -75,25 +72,18 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-gray-800 font-semibold text-sm ml-1">Telefon raqam</Label>
+              <Label htmlFor="email" className="text-gray-800 font-semibold text-sm ml-1">Email</Label>
               <div className="relative group">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-green-500 transition-colors z-10" />
-                <span className="absolute left-12 top-1/2 -translate-y-1/2 text-green-600 font-semibold select-none pointer-events-none z-20 text-base">
-                  +998{' '}
-                </span>
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-green-500 transition-colors z-10" />
                 <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="90 123 45 67"
-                  value={phone.startsWith('998') ? phone.slice(3) : phone}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '')
-                    if (raw.length <= 9) {
-                      setPhone(raw)
-                    }
-                  }}
+                  id="email"
+                  type="email"
+                  placeholder="sizning@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-[96px] h-12 bg-white/90 backdrop-blur-xl border-2 border-white/70 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-300 font-semibold text-base"
+                  autoComplete="email"
+                  className="pl-11 h-12 bg-white/90 backdrop-blur-xl border-2 border-white/70 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-green-400 focus:ring-4 focus:ring-green-400/20 shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-300 font-medium"
                 />
               </div>
             </div>

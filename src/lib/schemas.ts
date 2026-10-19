@@ -69,7 +69,10 @@ export const EditListingSchema = z.object({
 
 export const RegisterSchema = z.object({
   name: z.string().min(2).max(50).optional(),
-  phone: z.string().regex(/^\d+$/, "Telefon faqat raqamlar"),
-  email: z.string().email().optional(),
+  email: z.string().trim().toLowerCase().email("Email noto'g'ri"),
+  phone: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d+$/.test(v), "Telefon faqat raqamlar"),
   password: z.string().min(6, "Parol kamida 6 belgi"),
 })

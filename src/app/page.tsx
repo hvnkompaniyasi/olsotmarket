@@ -2,11 +2,12 @@ import Navbar from "@/components/Navbar"
 import Hero from "@/components/Hero"
 import Categories from "@/components/Categories"
 import FeaturedListings from "@/components/FeaturedListings"
+import HomeListings from "@/components/HomeListings"
 import Advantages from "@/components/Advantages"
 import Footer from "@/components/Footer"
 import MobileNav from "@/components/MobileNav"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 60
 
 export const metadata = {
   title: "Olsot Market — O'zbekistondagi ishonchli ko'chmas mulk platformasi",
@@ -22,6 +23,7 @@ export default function HomePage() {
         <Hero />
         <Categories />
         <FeaturedListings />
+        <HomeListings />
         <Advantages />
       </main>
       <Footer />

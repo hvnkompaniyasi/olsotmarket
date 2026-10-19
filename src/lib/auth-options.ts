@@ -8,20 +8,19 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        phone: { label: "Telefon", type: "tel" },
+        email: { label: "Email", type: "email" },
         password: { label: "Parol", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.phone || !credentials?.password) {
-          throw new Error("Telefon va parol kerak")
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email va parol kerak")
         }
-        const rawPhone = credentials.phone.replace(/[^0-9]/g, "")
-        const cleanPhone = rawPhone.startsWith("998") ? rawPhone : "998" + rawPhone
-        const user = await prisma.user.findUnique({ where: { phone: cleanPhone } })
+        const email = credentials.email.trim().toLowerCase()
+        const user = await prisma.user.findUnique({ where: { email } })
         if (!user || !user.password) throw new Error("Foydalanuvchi topilmadi")
         const isValid = await bcrypt.compare(credentials.password, user.password)
         if (!isValid) throw new Error("Parol noto'g'ri")
-        return { id: user.id, phone: user.phone, name: user.name, role: user.role }
+        return { id: user.id, email: user.email, phone: user.phone ?? undefined, name: user.name, role: user.role }
       },
     }),
   ],

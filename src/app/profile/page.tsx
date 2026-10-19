@@ -61,7 +61,7 @@ export default async function ProfilePage() {
               {name}
             </div>
             <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              +{phone}
+              {phone ? `+${phone}` : session.user.email || "Email yo'q"}
             </div>
           </div>
 

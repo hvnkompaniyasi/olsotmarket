@@ -5,7 +5,7 @@ import { CheckCircle, XCircle, Loader2, FileEdit, ArrowRight } from "lucide-reac
 
 interface EditUser {
   name: string | null
-  phone: string
+  phone: string | null
 }
 
 interface EditItem {

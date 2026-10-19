@@ -52,6 +52,7 @@
     "prisma": "^5.18.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "^59.19.0"
+    "vercel": "^59.19.0",
+    "vitest": "^3.2.7"
   }
 }

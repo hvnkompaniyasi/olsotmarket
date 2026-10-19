@@ -10,17 +10,19 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       return NextResponse.json({ errors: result.error.issues }, { status: 400 })
     }
-    const { name, phone, email, password } = result.data
+    const { name, email, phone, password } = result.data
 
-    if (!phone || !password) {
-      return NextResponse.json({ error: 'Telefon va parol majburiy' }, { status: 400 })
+    const existingEmail = await prisma.user.findUnique({ where: { email } })
+    if (existingEmail) {
+      return NextResponse.json({ error: 'Bu email allaqachon ro\'yxatdan o\'tgan' }, { status: 400 })
     }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '')
-
-    const existingUser = await prisma.user.findUnique({ where: { phone: cleanPhone } })
-    if (existingUser) {
-      return NextResponse.json({ error: 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan' }, { status: 400 })
+    const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : null
+    if (cleanPhone) {
+      const existingPhone = await prisma.user.findUnique({ where: { phone: cleanPhone } })
+      if (existingPhone) {
+        return NextResponse.json({ error: 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan' }, { status: 400 })
+      }
     }
 
     // OPTIMIZATSIYA: 10 rounds (tezroq)
@@ -29,15 +31,15 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name: name || null,
+        email,
         phone: cleanPhone,
-        email: email || null,
         password: hashedPassword,
       },
     })
 
-    return NextResponse.json({ 
-      message: 'Muvaffaqiyatli', 
-      user: { id: user.id, phone: user.phone } 
+    return NextResponse.json({
+      message: 'Muvaffaqiyatli',
+      user: { id: user.id, email: user.email },
     }, { status: 201 })
   } catch (error) {
     console.error('Register error:', error)
