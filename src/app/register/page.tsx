@@ -52,7 +52,7 @@ export default function RegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Xatolik yuz berdi')
+        setError(data.error || data.errors?.[0]?.message || 'Xatolik yuz berdi')
       } else {
         router.push('/login')
       }

@@ -22,7 +22,7 @@ module.exports = nextConfig
 
 // Injected content via Sentry wizard below
 
-const { withSentryConfig } = require("@sentry/nextjs");
+const { withSentryConfig } = require("@sentry/nextjs/config");
 
 module.exports = withSentryConfig(module.exports, {
   // For all available options, see:
@@ -44,9 +44,6 @@ module.exports = withSentryConfig(module.exports, {
   sourcemaps: {
     disable: process.env.VERCEL_ENV !== "production",
   },
-
-  // Suppress build logs
-  silent: true,
 
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your hosting bill.
