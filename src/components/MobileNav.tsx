@@ -11,7 +11,7 @@ export default function MobileNav() {
   const items = [
     { href: "/", icon: Home, label: "Bosh" },
     { href: "/listings", icon: Search, label: "Qidiruv" },
-    { href: "/add-listing", icon: Plus, label: "", center: true },
+    { href: "/listings/create", icon: Plus, label: "", center: true },
     { href: "/map", icon: MapPin, label: "Xarita" },
     { href: "/profile", icon: User, label: "Profil" },
   ]

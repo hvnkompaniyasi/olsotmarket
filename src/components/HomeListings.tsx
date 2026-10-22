@@ -1,51 +1,76 @@
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
-import { prisma } from "@/lib/prisma"
+import { ArrowRight, SearchX } from "lucide-react"
 import { DEAL_TYPES } from "@/lib/locations"
 import ListingCard from "@/components/ListingCard"
 
-const HOME_LIMIT = 12
+export interface HomeListing {
+  id: string
+  title: string
+  price: number
+  images: string[]
+  region: string
+  district: string
+  rooms: number | null
+  area: number | null
+  type: string
+  isPremium: boolean
+  createdAt: Date
+}
 
-const cardSelect = {
-  id: true,
-  title: true,
-  price: true,
-  images: true,
-  region: true,
-  district: true,
-  rooms: true,
-  area: true,
-  type: true,
-  isPremium: true,
-  createdAt: true,
-} as const
+interface HomeListingsProps {
+  listings: HomeListing[]
+  total: number
+  hasFilters?: boolean
+  queryString?: string
+}
 
-export default async function HomeListings() {
-  const [listings, total] = await Promise.all([
-    prisma.listing.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: [{ isPremium: "desc" }, { createdAt: "desc" }],
-      take: HOME_LIMIT,
-      select: cardSelect,
-    }),
-    prisma.listing.count({ where: { status: "ACTIVE" } }),
-  ])
+export default function HomeListings({
+  listings,
+  total,
+  hasFilters = false,
+  queryString = "",
+}: HomeListingsProps) {
+  if (listings.length === 0) {
+    if (!hasFilters) return null
 
-  if (listings.length === 0) return null
+    return (
+      <section className="pb-6">
+        <div className="glass rounded-2xl p-8 sm:p-10 text-center">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
+            <SearchX className="h-6 w-6 text-[#0A7C4E]" />
+          </div>
+          <h2 className="text-base font-extrabold text-gray-900 dark:text-white">
+            Filtrlarga mos e&apos;lon topilmadi
+          </h2>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Narx oralig&apos;ini kengaytiring yoki boshqa hududni tanlab ko&apos;ring.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 mt-4 h-10 px-4 rounded-xl bg-[#0A7C4E] hover:bg-[#086339] text-xs font-bold text-white transition-colors"
+          >
+            Filtrlarni tozalash
+          </Link>
+        </div>
+      </section>
+    )
+  }
+
+  const allHref = queryString ? `/listings?${queryString}` : "/listings"
 
   return (
     <section className="pb-6">
       <div className="flex items-end justify-between mb-3">
         <div>
           <h2 className="text-base font-extrabold text-gray-900 dark:text-white">
-            Yangi e&apos;lonlar
+            {hasFilters ? "Qidiruv natijalari" : "Yangi e'lonlar"}
           </h2>
           <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-            {total} ta faol e&apos;lon
+            {total} ta {hasFilters ? "mos" : "faol"} e&apos;lon
           </p>
         </div>
         <Link
-          href="/listings"
+          href={allHref}
           className="text-xs font-bold text-[#0A7C4E] dark:text-emerald-400 flex items-center gap-1"
         >
           Barchasi <ArrowRight className="h-3.5 w-3.5" />

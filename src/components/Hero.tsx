@@ -63,7 +63,7 @@ export default function Hero() {
             <MapPin className="h-4 w-4 text-[#0A7C4E]" /> Xaritada ko'rish
           </Link>
           <Link
-            href="/add-listing"
+            href="/listings/create"
             className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#0A7C4E] to-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-[0_8px_24px_rgba(10,124,78,0.35)]"
           >
             <Plus className="h-4 w-4" /> E'lon qo'shish — bepul

@@ -15,6 +15,15 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/add-listing",
+        destination: "/listings/create",
+        permanent: true,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

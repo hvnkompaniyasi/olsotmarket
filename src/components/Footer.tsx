@@ -6,7 +6,7 @@ const LINKS = [
   { href: "/listings?deal=RENT", label: "Ijaraga" },
   { href: "/listings", label: "Barcha e'lonlar" },
   { href: "/map", label: "Xarita" },
-  { href: "/add-listing", label: "E'lon qo'shish" },
+  { href: "/listings/create", label: "E'lon qo'shish" },
 ]
 
 export default function Footer() {

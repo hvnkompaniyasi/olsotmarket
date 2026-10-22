@@ -23,6 +23,30 @@ export function isSupabaseConfigured(): boolean {
   return isUsableEnvValue(supabaseUrl) && isUsableEnvValue(supabaseAnonKey)
 }
 
+const PUBLIC_IMAGE_PATH = `/storage/v1/object/public/${LISTING_IMAGES_BUCKET}/`
+
+export function isListingImageUrl(url: string): boolean {
+  if (!isUsableEnvValue(supabaseUrl)) return false
+  try {
+    const target = new URL(url)
+    const base = new URL(supabaseUrl)
+    return target.origin === base.origin && target.pathname.startsWith(PUBLIC_IMAGE_PATH)
+  } catch {
+    return false
+  }
+}
+
+export function listingImagePathFromUrl(url: string): string | null {
+  if (!isListingImageUrl(url)) return null
+  try {
+    const target = new URL(url)
+    const path = decodeURIComponent(target.pathname.slice(PUBLIC_IMAGE_PATH.length))
+    return path || null
+  } catch {
+    return null
+  }
+}
+
 let supabaseClient: SupabaseClient | null = null
 
 function getSupabaseClient(): SupabaseClient {

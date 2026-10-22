@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import {
-  MapPin, Home, Ruler, Layers, Flame, Droplets, Zap, Phone, User, Crown, BedDouble, Building2,
+  MapPin, Home, Ruler, Layers, Flame, Droplets, Zap, User, Crown, BedDouble, Building2,
 } from "lucide-react";
 import { prisma } from "@/lib/auth";
 import { authOptions } from "@/lib/auth-options";
@@ -15,6 +14,8 @@ import MessageButton from "@/components/MessageButton";
 import ShareListingButton from "@/components/ShareListingButton";
 import BackButton from "@/components/BackButton";
 import FavoriteToggle from "@/components/FavoriteToggle";
+import SellerContactCard from "@/components/SellerContactCard";
+import PhoneReveal from "@/components/PhoneReveal";
 import { formatPrice } from "@/lib/format";
 import { DEAL_TYPES } from "@/lib/locations";
 
@@ -31,11 +32,11 @@ const categoryNames: Record<string, string> = {
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const l = await prisma.listing.findUnique({
     where: { id: params.id },
-    select: { title: true, description: true, images: true, price: true, type: true },
+    select: { title: true, description: true, images: true, price: true, type: true, currency: true },
   });
   if (!l) return { title: "E'lon topilmadi | Olsot Market" };
   const deal = DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type;
-  const priceStr = formatPrice(l.price, deal);
+  const priceStr = formatPrice(l.price, deal, l.currency);
   return {
     title: `${l.title} — ${priceStr} | Olsot Market`,
     description: (l.description || l.title).slice(0, 160),
@@ -71,7 +72,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   });
 
   const dealName = DEAL_TYPES.find((d) => d.id === listing.type)?.name || listing.type;
-  const priceStr = formatPrice(listing.price, dealName);
+  const priceStr = formatPrice(listing.price, dealName, listing.currency);
 
   return (
     <div className="min-h-screen bg-[#F7FBF8] dark:bg-zinc-950 pb-32 lg:pb-10">
@@ -110,7 +111,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-[#0A7C4E] flex-shrink-0" />
             <span className="line-clamp-1">
-              {[listing.district, listing.region].filter(Boolean).join(", ")}
+              {[listing.region, listing.district, listing.address].filter(Boolean).join(", ")}
             </span>
           </p>
 
@@ -181,43 +182,55 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
           </div>
         </div>
 
-        {/* ===== TAVSIF ===== */}
-        {listing.description && (
-          <section className="mt-5 glass rounded-2xl p-4 sm:p-5">
-            <h2 className="text-sm font-extrabold text-gray-900 dark:text-white mb-2">
-              Tavsif
-            </h2>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-              {listing.description}
-            </p>
-          </section>
-        )}
+        <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <div className="space-y-4">
+            {/* ===== TAVSIF ===== */}
+            {listing.description && (
+              <section className="glass rounded-2xl p-4 sm:p-5">
+                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white mb-2">
+                  Tavsif
+                </h2>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                  {listing.description}
+                </p>
+              </section>
+            )}
 
-        {/* ===== FACILITIES ===== */}
-        {(listing.hasGas || listing.hasWater || listing.hasElectricity) && (
-          <section className="mt-4 glass rounded-2xl p-4 sm:p-5">
-            <h2 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3">
-              Qulayliklar
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {listing.hasGas && (
-                <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <Flame className="h-3.5 w-3.5 text-[#0A7C4E]" /> Gaz
-                </span>
-              )}
-              {listing.hasWater && (
-                <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <Droplets className="h-3.5 w-3.5 text-[#0A7C4E]" /> Suv
-                </span>
-              )}
-              {listing.hasElectricity && (
-                <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5 text-[#0A7C4E]" /> Elektr
-                </span>
-              )}
-            </div>
-          </section>
-        )}
+            {/* ===== FACILITIES ===== */}
+            {(listing.hasGas || listing.hasWater || listing.hasElectricity) && (
+              <section className="glass rounded-2xl p-4 sm:p-5">
+                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3">
+                  Qulayliklar
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {listing.hasGas && (
+                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                      <Flame className="h-3.5 w-3.5 text-[#0A7C4E]" /> Gaz
+                    </span>
+                  )}
+                  {listing.hasWater && (
+                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                      <Droplets className="h-3.5 w-3.5 text-[#0A7C4E]" /> Suv
+                    </span>
+                  )}
+                  {listing.hasElectricity && (
+                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-[#0A7C4E]" /> Elektr
+                    </span>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+
+          <aside className="lg:sticky lg:top-20">
+            <SellerContactCard
+              sellerName={listing.user?.name ?? null}
+              phone={listing.user?.phone ?? null}
+              createdAt={listing.createdAt.toISOString()}
+            />
+          </aside>
+        </div>
 
         {/* ===== O'XSHASH E'LONLAR ===== */}
         {similar.length > 0 && (
@@ -258,13 +271,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
                 {priceStr}
               </p>
             </div>
-            <Link
-              href={`tel:${listing.user?.phone || ""}`}
-              className="h-11 px-4 sm:px-5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-gray-800 dark:text-white flex items-center gap-1.5 shadow-sm"
-            >
-              <Phone className="h-4 w-4 text-[#0A7C4E]" />
-              <span className="hidden sm:inline">Qo'ng'iroq</span>
-            </Link>
+            <PhoneReveal phone={listing.user?.phone ?? null} compact />
             <div className="h-11">
               <MessageButton listingId={listing.id} />
             </div>
