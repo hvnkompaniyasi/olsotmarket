@@ -10,6 +10,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const listing = await prisma.listing.findUnique({ where: { id: params.id } })
     if (!listing) return NextResponse.json({ error: "Topilmadi" }, { status: 404 })
+
+    if (listing.status !== "ACTIVE") {
+      const session = await getServerSession(authOptions)
+      const isOwner = session?.user?.id === listing.userId
+      const isAdmin =
+        session?.user?.role === "ADMIN" || session?.user?.role === "SUPERADMIN"
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json({ error: "Topilmadi" }, { status: 404 })
+      }
+    }
+
     return NextResponse.json({ listing })
   } catch (error) {
     console.error("GET /api/listings/[id] error:", error)

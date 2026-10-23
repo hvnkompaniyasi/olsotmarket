@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import type { LayerGroup, Map as LeafletMap, Marker } from "leaflet"
 import Link from "next/link"
 import { ArrowLeft, SlidersHorizontal, LocateFixed, Plus, Minus, X, Loader2, MapPin } from "lucide-react"
 import { REGIONS, DEAL_TYPES } from "@/lib/locations"
@@ -20,12 +21,58 @@ interface MapListing {
 
 const coordsOf = (l: MapListing): [number, number] => [l.latitude || 0, l.longitude || 0]
 
+function safeImageUrl(value: string): string | null {
+  try {
+    const url = new URL(value, window.location.origin)
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+function createPopupContent(listing: MapListing): HTMLElement {
+  const container = document.createElement("div")
+  container.style.minWidth = "190px"
+
+  const imageUrl = listing.images[0] ? safeImageUrl(listing.images[0]) : null
+  if (imageUrl) {
+    const image = document.createElement("img")
+    image.src = imageUrl
+    image.alt = listing.title ? `${listing.title} — e'lon rasmi` : "E'lon rasmi"
+    image.style.cssText = "width:100%;height:110px;object-fit:cover;border-radius:10px;margin-bottom:8px"
+    container.append(image)
+  }
+
+  const title = document.createElement("div")
+  title.textContent = (listing.title || "Sarlavhasiz").slice(0, 45)
+  title.style.cssText = "font-weight:700;font-size:13px;margin-bottom:2px"
+  container.append(title)
+
+  const price = document.createElement("div")
+  price.textContent = `$${listing.price.toLocaleString("en-US")}`
+  price.style.cssText = "color:#ea580c;font-weight:800;font-size:15px"
+  container.append(price)
+
+  const location = document.createElement("div")
+  location.textContent = `${listing.region}${listing.district ? `, ${listing.district}` : ""}`
+  location.style.cssText = "color:#6b7280;font-size:11px;margin:5px 0 8px"
+  container.append(location)
+
+  const link = document.createElement("a")
+  link.href = `/listing/${encodeURIComponent(listing.id)}`
+  link.textContent = "Ko'rish"
+  link.style.cssText = "display:block;text-align:center;background:linear-gradient(135deg,#fb923c,#0a7c4e);color:#fff;padding:8px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none"
+  container.append(link)
+
+  return container
+}
+
 export default function MapPage() {
   const divRef = useRef<HTMLDivElement>(null)
-  const LRef = useRef<any>(null)
-  const mapRef = useRef<any>(null)
-  const groupRef = useRef<any>(null)
-  const userMarkerRef = useRef<any>(null)
+  const LRef = useRef<typeof import("leaflet") | null>(null)
+  const mapRef = useRef<LeafletMap | null>(null)
+  const groupRef = useRef<LayerGroup | null>(null)
+  const userMarkerRef = useRef<Marker | null>(null)
 
   const [ready, setReady] = useState(false)
   const [listings, setListings] = useState<MapListing[]>([])
@@ -41,7 +88,7 @@ export default function MapPage() {
   }
 
   useEffect(() => {
-    let map: any
+    let map: LeafletMap | null = null
     let cancelled = false
     ;(async () => {
       const L = (await import("leaflet")).default
@@ -77,21 +124,16 @@ export default function MapPage() {
     group.clearLayers()
     listings.forEach((l) => {
       const [lat, lng] = coordsOf(l)
+      const pin = document.createElement("div")
+      pin.textContent = `$${Math.round(l.price / 1000)}k`
+      pin.style.cssText = "background:linear-gradient(135deg,#fb923c,#0a7c4e);color:#fff;padding:5px 12px;border-radius:9999px;font-size:12px;font-weight:700;box-shadow:0 4px 14px rgba(249,115,22,.45);border:2px solid #fff;white-space:nowrap;transform:translate(-50%,-50%)"
       const icon = L.divIcon({
         className: "",
-        html: `<div style="background:linear-gradient(135deg,#fb923c,#0a7c4e);color:#fff;padding:5px 12px;border-radius:9999px;font-size:12px;font-weight:700;box-shadow:0 4px 14px rgba(249,115,22,.45);border:2px solid #fff;white-space:nowrap;transform:translate(-50%,-50%)">$${Math.round(l.price / 1000)}k</div>`,
+        html: pin,
         iconSize: [0, 0],
       })
       const marker = L.marker([lat, lng], { icon }).addTo(group)
-      marker.bindPopup(
-        `<div style="min-width:190px">
-          ${l.images?.[0] ? `<img src="${l.images[0]}" style="width:100%;height:110px;object-fit:cover;border-radius:10px;margin-bottom:8px"/>` : ""}
-          <div style="font-weight:700;font-size:13px;margin-bottom:2px">${(l.title || "Sarlavhasiz").slice(0, 45)}</div>
-          <div style="color:#ea580c;font-weight:800;font-size:15px">$${l.price.toLocaleString("en-US")}</div>
-          <div style="color:#6b7280;font-size:11px;margin:5px 0 8px">${l.region}${l.district ? ", " + l.district : ""}</div>
-          <a href="/listing/${l.id}" style="display:block;text-align:center;background:linear-gradient(135deg,#fb923c,#0a7c4e);color:#fff;padding:8px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none">Ko'rish</a>
-        </div>`
-      )
+      marker.bindPopup(createPopupContent(l))
     })
     if (listings.length > 0) {
       const pts = listings.map((l) => { const [la, ln] = coordsOf(l); return L.latLng(la, ln) })
@@ -110,8 +152,10 @@ export default function MapPage() {
         if (!map || !L) return
         map.setView([latitude, longitude], 13)
         if (userMarkerRef.current) map.removeLayer(userMarkerRef.current)
+        const userDot = document.createElement("div")
+        userDot.className = "user-dot"
         userMarkerRef.current = L.marker([latitude, longitude], {
-          icon: L.divIcon({ className: "", html: '<div class="user-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+          icon: L.divIcon({ className: "", html: userDot, iconSize: [18, 18], iconAnchor: [9, 9] }),
         }).addTo(map)
         setLocating(false)
         showToast("📍 Joylashuvingiz belgilandi")
@@ -141,7 +185,7 @@ export default function MapPage() {
         <div className="flex-1 h-11 px-4 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 flex items-center gap-2 min-w-0">
           <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
-            Xaritadagi e'lonlar: {listings.length}
+            Xaritadagi e&apos;lonlar: {listings.length}
           </span>
         </div>
         <button onClick={() => setSheetOpen(true)} className={fabCls} aria-label="Filtrlar">
@@ -202,7 +246,7 @@ export default function MapPage() {
                   Tozalash
                 </button>
                 <button onClick={() => setSheetOpen(false)} className="flex-1 h-12 bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg">
-                  Ko'rish ({listings.length})
+                  Ko&apos;rish ({listings.length})
                 </button>
               </div>
             </div>
