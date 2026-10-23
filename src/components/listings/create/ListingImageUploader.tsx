@@ -10,6 +10,8 @@ import {
 } from "@/lib/supabaseClient"
 import { MAX_LISTING_IMAGES, MAX_LISTING_IMAGE_SIZE } from "@/lib/listing-form"
 
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const
+
 interface Props {
   images: string[]
   onChange: (images: string[]) => void
@@ -39,7 +41,7 @@ export default function ListingImageUploader({
     const files = Array.from(list)
     if (files.length === 0 || disabled) return
 
-    if (files.some((file) => !file.type.startsWith("image/"))) {
+    if (files.some((file) => !ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number]))) {
       setError("Faqat JPG, PNG yoki WEBP rasmlar yuklanadi")
       return
     }

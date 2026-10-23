@@ -20,7 +20,7 @@ function SubmitButton({ pending, disabled }: { pending: boolean; disabled: boole
       className="h-14 w-full bg-gradient-to-r from-[#0A7C4E] to-[#08623D] text-white rounded-2xl font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-green-400/30 disabled:opacity-50"
     >
       {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-      E'lonni joylash
+      E&apos;lonni joylash
     </button>
   )
 }
@@ -55,6 +55,14 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
       try {
         const result = await createListingAction(INITIAL_CREATE_LISTING_STATE, formData)
         setState(result)
+      } catch (error) {
+        const digest =
+          typeof error === "object" && error !== null && "digest" in error
+            ? String((error as { digest?: unknown }).digest)
+            : ""
+        // Next.js redirect() maxsus xato orqali ishlaydi — uni yutib yubormaymiz
+        if (digest.startsWith("NEXT_REDIRECT")) throw error
+        setClientError("E'lonni saqlashda xatolik yuz berdi. Qayta urinib ko'ring.")
       } finally {
         setSubmitting(false)
       }
@@ -183,7 +191,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
 
       <SubmitButton pending={isPending || submitting} disabled={uploading || !storageReady} />
       <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
-        E'lon moderatsiya tekshiruvidan so'ng saytda ko'rinadi
+        E&apos;lon moderatsiya tekshiruvidan so&apos;ng saytda ko&apos;rinadi
       </p>
     </form>
   )
