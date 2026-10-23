@@ -54,6 +54,10 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
     startTransition(async () => {
       try {
         const result = await createListingAction(INITIAL_CREATE_LISTING_STATE, formData)
+        if (result == null) {
+          setClientError("E'lonni saqlashda javob olinmadi. Qayta urinib ko'ring.")
+          return
+        }
         setState(result)
       } catch (error) {
         const digest =
