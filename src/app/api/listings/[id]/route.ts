@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { revalidatePath } from "next/cache"
 import { prisma } from "@/lib/auth"
 import { authOptions } from "@/lib/auth-options"
+import { invalidateRedisCache } from "@/lib/redis"
 import { deleteListingImage, listingImagePathFromUrl } from "@/lib/supabaseClient"
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -33,6 +34,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await prisma.listing.delete({ where: { id: params.id } })
+    await invalidateRedisCache("listings:v1:*")
 
     const paths = listing.images
       .map((url) => listingImagePathFromUrl(url))

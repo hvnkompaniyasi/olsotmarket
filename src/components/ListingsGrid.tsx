@@ -1,11 +1,9 @@
 import ListingCard from "./ListingCard";
 import { DEAL_TYPES } from "@/lib/locations";
-import type { Listing } from "@prisma/client";
-
-type ListingWithUser = Listing & { user: { name: string | null } | null };
+import type { ListingSummary } from "@/lib/listing-cache";
 
 interface ListingsGridProps {
-  listings: ListingWithUser[];
+  listings: ListingSummary[];
   total: number;
 }
 

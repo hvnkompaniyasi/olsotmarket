@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Home, ChevronLeft, ChevronRight } from "lucide-react"
+import Image from "next/image"
 
 export default function ImageGallery({ images, title }: { images: string[]; title: string }) {
   const [index, setIndex] = useState(0)
@@ -17,19 +18,21 @@ export default function ImageGallery({ images, title }: { images: string[]; titl
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100">
-        <img src={images[index]} alt={title} className="w-full h-full object-cover" />
+      <div className="relative aspect-video overflow-hidden rounded-2xl bg-gray-100">
+        <Image src={images[index]} alt={`${title} — rasm ${index + 1}`} fill sizes="100vw" className="object-cover transition-opacity duration-200" />
         {images.length > 1 && (
           <>
             <button
               onClick={() => setIndex((index - 1 + images.length) % images.length)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all"
+              aria-label="Oldingi rasm"
+              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95"
             >
               <ChevronLeft className="h-5 w-5 text-gray-700" />
             </button>
             <button
               onClick={() => setIndex((index + 1) % images.length)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all"
+              aria-label="Keyingi rasm"
+              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95"
             >
               <ChevronRight className="h-5 w-5 text-gray-700" />
             </button>
@@ -46,11 +49,13 @@ export default function ImageGallery({ images, title }: { images: string[]; titl
             <button
               key={i}
               onClick={() => setIndex(i)}
-              className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+              aria-label={`${i + 1}-rasmni ko'rsatish`}
+              aria-pressed={i === index}
+              className={`relative aspect-square overflow-hidden rounded-lg border-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95 ${
                 i === index ? "border-green-500 shadow-lg" : "border-transparent opacity-70 hover:opacity-100"
               }`}
             >
-              <img src={img} alt="" className="w-full h-full object-cover" />
+              <Image src={img} alt="" fill sizes="(max-width: 640px) 25vw, 16vw" className="object-cover" />
             </button>
           ))}
         </div>

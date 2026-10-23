@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/auth";
+import { getCachedListingPage } from "@/lib/listing-cache";
 import { formatPrice } from "@/lib/format";
 import { DEAL_TYPES } from "@/lib/locations";
 import Navbar from "@/components/Navbar";
@@ -28,32 +27,15 @@ interface PageProps {
 export default async function ListingsPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
   const view = searchParams.view === "map" || searchParams.view === "large" ? searchParams.view : "grid";
-  const perPage = 12;
-
-  const where: Prisma.ListingWhereInput = { status: "ACTIVE" };
   const t = searchParams.type;
-  if (t === "SALE" || t === "RENT" || t === "DAILY") where.type = t;
-  if (searchParams.region) where.region = searchParams.region;
-  if (searchParams.q) where.title = { contains: searchParams.q, mode: "insensitive" };
-
-  const [total, listings, regionRows] = await prisma.$transaction([
-    prisma.listing.count({ where }),
-    prisma.listing.findMany({
-      where,
-      orderBy: [{ isPremium: "desc" }, { createdAt: "desc" }],
-      skip: (page - 1) * perPage,
-      take: perPage,
-      include: { user: { select: { name: true } } },
-    }),
-    prisma.listing.findMany({
-      where: { status: "ACTIVE" },
-      distinct: ["region"],
-      select: { region: true },
-      orderBy: { region: "asc" },
-    }),
-  ]);
-
-  const regions = regionRows.map((r) => r.region).filter((r): r is string => Boolean(r));
+  const type = t === "SALE" || t === "RENT" || t === "DAILY" ? t : undefined;
+  const { total, listings, regions } = await getCachedListingPage({
+    page,
+    type,
+    region: searchParams.region,
+    query: searchParams.q,
+  });
+  const perPage = 12;
 
   const rest = new URLSearchParams();
   Object.entries(searchParams).forEach(([k, v]) => {

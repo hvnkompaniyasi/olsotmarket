@@ -125,6 +125,7 @@ model Listing {
   @@index([category, status])
   @@index([userId])
   @@index([status, type])
+  @@index([status, price])
   isPremium    Boolean   @default(false)
   premiumUntil DateTime?
 }

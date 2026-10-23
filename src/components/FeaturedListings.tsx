@@ -63,7 +63,7 @@ export default async function FeaturedListings() {
               {l.images?.[0] ? (
                 <Image
                   src={l.images[0]}
-                  alt={l.title}
+                  alt={l.title ? `${l.title} — e'lon rasmi` : "Ko'chmas mulk e'lonining rasmi"}
                   fill
                   sizes="(max-width: 640px) 240px, 280px"
                   className="object-cover group-hover:scale-105 transition-transform duration-700"

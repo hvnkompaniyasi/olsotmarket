@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/auth"
 import { createNotification } from "@/lib/notify"
+import { invalidateRedisCache } from "@/lib/redis"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -24,6 +25,7 @@ export async function GET(req: NextRequest) {
       where: { id: { in: expired.map((l) => l.id) } },
       data: { status: "EXPIRED" },
     })
+    await invalidateRedisCache("listings:v1:*")
 
     // Har bir egasiga bildirishnoma
     for (const l of expired) {
