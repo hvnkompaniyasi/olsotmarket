@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
-import { useFormState, useFormStatus } from "react-dom"
+import { useState, useTransition, type FormEvent } from "react"
 import { AlertCircle, Loader2, Plus } from "lucide-react"
 import { createListingAction } from "@/app/listings/create/actions"
 import { INITIAL_CREATE_LISTING_STATE, type CreateListingState } from "@/lib/listing-form"
@@ -13,8 +12,7 @@ const inputCls =
 const labelCls = "text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 block"
 const errorCls = "mt-1 text-xs text-red-600 dark:text-red-400"
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
-  const { pending } = useFormStatus()
+function SubmitButton({ pending, disabled }: { pending: boolean; disabled: boolean }) {
   return (
     <button
       type="submit"
@@ -28,10 +26,9 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 }
 
 export default function CreateListingForm({ storageReady }: { storageReady: boolean }) {
-  const [state, formAction] = useFormState<CreateListingState, FormData>(
-    createListingAction,
-    INITIAL_CREATE_LISTING_STATE
-  )
+  const [state, setState] = useState<CreateListingState>(INITIAL_CREATE_LISTING_STATE)
+  const [isPending, startTransition] = useTransition()
+  const [submitting, setSubmitting] = useState(false)
   const [region, setRegion] = useState("")
   const [district, setDistrict] = useState("")
   const [images, setImages] = useState<string[]>([])
@@ -41,21 +38,31 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   const districts = getDistricts(region)
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     if (uploading) {
-      event.preventDefault()
       setClientError("Rasmlar yuklanishi tugashini kuting")
       return
     }
     if (images.length === 0) {
-      event.preventDefault()
       setClientError("Kamida 1 ta rasm yuklang")
       return
     }
+
     setClientError("")
+    setSubmitting(true)
+    const formData = new FormData(event.currentTarget)
+    startTransition(async () => {
+      try {
+        const result = await createListingAction(INITIAL_CREATE_LISTING_STATE, formData)
+        setState(result)
+      } finally {
+        setSubmitting(false)
+      }
+    })
   }
 
   return (
-    <form action={formAction} onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       {(state.error || clientError) && (
         <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-sm text-red-600 dark:text-red-400 flex gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -72,12 +79,12 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] space-y-3">
         <div>
           <label htmlFor="title" className={labelCls}>Sarlavha *</label>
-          <input id="title" name="title" required minLength={5} maxLength={100} placeholder="Masalan: Chilonzorda 3 xonali kvartira" className={inputCls} />
+          <input id="title" name="title" required minLength={5} maxLength={120} placeholder="Masalan: Chilonzorda 3 xonali kvartira" className={inputCls} />
           {state.fieldErrors?.title && <p className={errorCls}>{state.fieldErrors.title[0]}</p>}
         </div>
         <div>
-          <label htmlFor="description" className={labelCls}>Tavsif</label>
-          <textarea id="description" name="description" rows={4} maxLength={2000} placeholder="E'lon haqida batafsil..." className={`${inputCls} h-auto py-3 resize-none`} />
+          <label htmlFor="description" className={labelCls}>Tavsif *</label>
+          <textarea id="description" name="description" required minLength={20} rows={4} maxLength={2000} placeholder="E'lon haqida batafsil..." className={`${inputCls} h-auto py-3 resize-none`} />
           {state.fieldErrors?.description && <p className={errorCls}>{state.fieldErrors.description[0]}</p>}
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -133,10 +140,11 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
             </select>
           </div>
           <div>
-            <label htmlFor="district" className={labelCls}>Tuman / shahar</label>
+            <label htmlFor="district" className={labelCls}>Tuman / shahar *</label>
             <select
               id="district"
               name="district"
+              required
               value={district}
               onChange={(event) => setDistrict(event.target.value)}
               disabled={!region}
@@ -150,8 +158,8 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           </div>
         </div>
         <div>
-          <label htmlFor="address" className={labelCls}>Manzil</label>
-          <input id="address" name="address" maxLength={200} placeholder="Ko'cha, uy raqami" className={inputCls} />
+          <label htmlFor="address" className={labelCls}>Manzil *</label>
+          <input id="address" name="address" required minLength={5} maxLength={200} placeholder="Ko'cha, uy raqami" className={inputCls} />
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <div>
@@ -160,7 +168,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           </div>
           <div>
             <label htmlFor="area" className={labelCls}>Maydon (m²)</label>
-            <input id="area" name="area" type="number" min={0} step="any" className={inputCls} />
+            <input id="area" name="area" type="number" min={1} step="any" className={inputCls} />
           </div>
         </div>
       </div>
@@ -173,7 +181,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         disabled={!storageReady}
       />
 
-      <SubmitButton disabled={uploading || !storageReady} />
+      <SubmitButton pending={isPending || submitting} disabled={uploading || !storageReady} />
       <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center">
         E'lon moderatsiya tekshiruvidan so'ng saytda ko'rinadi
       </p>

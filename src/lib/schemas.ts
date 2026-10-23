@@ -1,20 +1,20 @@
 import { z } from "zod"
 
 // Listing yaratish
-export const CreateListingSchema = z.object({
-  title: z.string().trim().min(5, "Sarlavha kamida 5 belgi").max(100),
-  description: z.string().trim().min(10, "Tavsif kamida 10 belgi").max(2000).optional(),
+export const listingSchema = z.object({
+  title: z.string().trim().min(5, "Sarlavha kamida 5 belgi").max(120, "Sarlavha 120 belgidan oshmasin"),
+  description: z.string().trim().min(20, "Tavsif kamida 20 belgi").max(2000, "Tavsif 2000 belgidan oshmasin"),
   type: z.enum(["SALE", "RENT", "DAILY", "NEW_BUILDING"]),
   category: z.enum(["APARTMENT", "HOUSE", "OFFICE", "LAND", "WAREHOUSE"]),
-  price: z.number().positive("Narx musbat bo'lishi kerak").max(1_000_000_000_000),
+  price: z.coerce.number().positive("Narx musbat bo'lishi kerak").max(1_000_000_000_000),
   currency: z.enum(["UZS", "USD"]).default("UZS"),
-  region: z.string().trim().min(2).max(50),
-  district: z.string().trim().max(50).optional(),
-  address: z.string().trim().max(200).optional(),
+  region: z.string().trim().min(2, "Viloyat kamida 2 belgi").max(50),
+  district: z.string().trim().min(2, "Tuman kamida 2 belgi").max(50),
+  address: z.string().trim().min(5, "Manzil kamida 5 belgi").max(200),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
-  rooms: z.number().int().min(0).max(20).optional(),
-  area: z.number().min(0).max(100_000).optional(),
+  rooms: z.coerce.number().int().min(0).max(20).optional(),
+  area: z.coerce.number().positive("Maydon musbat bo'lishi kerak").max(100_000).optional(),
   floor: z.number().int().min(0).max(200).optional(),
   totalFloors: z.number().int().min(1).max(200).optional(),
   hasGas: z.boolean().optional(),
@@ -22,6 +22,10 @@ export const CreateListingSchema = z.object({
   hasElectricity: z.boolean().optional(),
   images: z.array(z.string().url()).min(1, "Kamida 1 ta rasm kerak").max(10),
 })
+
+// Eski importlar uchun alias (yagona manba — listingSchema)
+export const CreateListingSchema = listingSchema
+export type ListingInput = z.infer<typeof listingSchema>
 
 // Profil yangilash
 export const UpdateProfileSchema = z.object({
