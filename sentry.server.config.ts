@@ -5,15 +5,12 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: "https://a43bf06ad2b418b4f772ceccd8895586@o4512101917261824.ingest.us.sentry.io/4512102006980608",
+  dsn:
+    process.env.SENTRY_DSN ||
+    process.env.NEXT_PUBLIC_SENTRY_DSN ||
+    "https://a43bf06ad2b418b4f772ceccd8895586@o4512101917261824.ingest.us.sentry.io/4512102006980608",
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
 
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
 });

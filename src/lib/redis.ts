@@ -31,6 +31,21 @@ export function getRedisClient(): Redis | null {
   }
 }
 
+export async function checkRedisConnection(): Promise<void> {
+  const client = getRedisClient()
+  if (!client) {
+    throw new Error("REDIS_URL is not configured")
+  }
+
+  if (client.status === "wait") {
+    await client.connect()
+  }
+  if (client.status !== "ready") {
+    throw new Error("Redis is not ready")
+  }
+  await client.ping()
+}
+
 export async function getRedisCache(key: string): Promise<string | null> {
   const client = getRedisClient()
   if (!client) return null

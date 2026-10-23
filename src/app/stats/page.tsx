@@ -1,6 +1,5 @@
 "use client"
-import { BarChart, Crown, TrendingUp, Users, MessageSquare, Heart, FileEdit } from "lucide-react"
-import Link from "next/link"
+import { BarChart, Crown, TrendingUp } from "lucide-react"
 
 export default function StatsPage() {
   return (
@@ -11,14 +10,6 @@ export default function StatsPage() {
           <Crown className="h-6 w-6 text-emerald-400" />
           <h2 className="text-lg font-extrabold text-emerald-400">Admin</h2>
         </div>
-        <nav className="space-y-2">
-          <Link href="/admin/edits" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">
-            <FileEdit className="h-4 w-4" /> Tahrirlar
-          </Link>
-          <Link href="/stats" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-emerald-400 bg-zinc-800/60">
-            <BarChart className="h-4 w-4" /> Statistika
-          </Link>
-        </nav>
       </aside>
 
       <main className="lg:ml-64 px-6 py-8 max-w-6xl mx-auto">

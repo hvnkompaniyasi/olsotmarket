@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import * as Sentry from "@sentry/nextjs"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -38,6 +39,16 @@ export const authOptions: NextAuthOptions = {
         session.user.phone = token.phone as string
       }
       return session
+    },
+  },
+  logger: {
+    error(code, metadata) {
+      const error = metadata instanceof Error ? metadata : metadata.error
+      Sentry.withScope((scope) => {
+        scope.setTag("subsystem", "nextauth")
+        scope.setTag("nextauth.error_code", code)
+        Sentry.captureException(error)
+      })
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
