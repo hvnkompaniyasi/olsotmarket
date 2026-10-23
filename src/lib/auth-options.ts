@@ -29,14 +29,31 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) { token.id = user.id; token.role = user.role; token.phone = user.phone }
+      if (user) token.sub = user.id
+
+      const email = typeof token.email === "string" ? token.email : null
+      if (token.sub || email) {
+        const dbUser = await prisma.user.findUnique({
+          where: token.sub ? { id: token.sub } : { email: email! },
+          select: { role: true, phone: true },
+        })
+
+        if (dbUser) {
+          token.role = dbUser.role
+          token.phone = dbUser.phone ?? undefined
+        } else {
+          delete token.role
+          delete token.phone
+          delete token.id
+        }
+      }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as string
-        session.user.phone = token.phone as string
+        if (token.sub) session.user.id = token.sub
+        session.user.role = token.role ?? "USER"
+        session.user.phone = token.phone
       }
       return session
     },
