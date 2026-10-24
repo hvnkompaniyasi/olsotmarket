@@ -5,10 +5,6 @@ import { getToken } from "next-auth/jwt"
 // Serverless cheklovi: in-memory Map har deploy'da tozalanadi.
 const rateMap = new Map<string, { count: number; reset: number }>()
 
-function isAdminRole(role: unknown): boolean {
-  return role === "ADMIN" || role === "SUPERADMIN"
-}
-
 function isAdminApi(pathname: string): boolean {
   return pathname === "/api/admin" || pathname.startsWith("/api/admin/")
 }
@@ -32,7 +28,13 @@ export async function middleware(req: NextRequest) {
   if (adminApi || adminPage) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
     const userId = token?.sub ?? token?.id
-    if (!userId || !isAdminRole(token?.role)) {
+
+    // Coarse gate only: is there an authenticated session at all?
+    // The JWT role is NOT trusted here. Middleware runs on the Edge runtime,
+    // which cannot use Prisma, so the authoritative role is read from the
+    // database by requireAdmin() in the admin layouts/pages and by
+    // getServerSession() inside every /api/admin route handler.
+    if (!userId) {
       if (adminApi) {
         return NextResponse.json(
           { success: false, error: "Ruxsat yo'q", code: "FORBIDDEN" },

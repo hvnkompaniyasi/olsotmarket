@@ -1,9 +1,12 @@
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/admin-guard"
 import ListingModeration from "./ListingModeration"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminListingsPage() {
+  await requireAdmin()
+
   const listings = await prisma.listing.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "asc" },

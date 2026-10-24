@@ -1,6 +1,9 @@
 import Link from "next/link"
 import { BarChart3, CheckCircle2, Clock3, Home, Users } from "lucide-react"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/admin-guard"
+
+export const dynamic = "force-dynamic"
 
 const cards = [
   { key: "totalListings", label: "Jami e'lonlar", icon: Home, color: "text-blue-600 bg-blue-50" },
@@ -10,6 +13,8 @@ const cards = [
 ] as const
 
 export default async function AdminDashboardPage() {
+  await requireAdmin()
+
   const [totalListings, pendingListings, activeListings, totalUsers] = await Promise.all([
     prisma.listing.count(),
     prisma.listing.count({ where: { status: "PENDING" } }),
