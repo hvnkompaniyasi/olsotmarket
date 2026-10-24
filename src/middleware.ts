@@ -31,7 +31,8 @@ export async function middleware(req: NextRequest) {
 
   if (adminApi || adminPage) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-    if (!token?.sub || !isAdminRole(token.role)) {
+    const userId = token?.sub ?? token?.id
+    if (!userId || !isAdminRole(token?.role)) {
       if (adminApi) {
         return NextResponse.json(
           { success: false, error: "Ruxsat yo'q", code: "FORBIDDEN" },

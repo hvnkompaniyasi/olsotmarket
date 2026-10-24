@@ -29,29 +29,42 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.sub = user.id
+      if (user) {
+        token.sub = user.id
+        token.id = user.id
+      }
 
+      const userId = token.sub ?? token.id
       const email = typeof token.email === "string" ? token.email : null
-      if (token.sub || email) {
-        const dbUser = await prisma.user.findUnique({
-          where: token.sub ? { id: token.sub } : { email: email! },
-          select: { role: true, phone: true },
-        })
+      const dbUser = userId
+        ? await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, role: true, phone: true },
+          })
+        : email
+          ? await prisma.user.findUnique({
+              where: { email },
+              select: { id: true, role: true, phone: true },
+            })
+          : null
 
-        if (dbUser) {
-          token.role = dbUser.role
-          token.phone = dbUser.phone ?? undefined
-        } else {
-          delete token.role
-          delete token.phone
-          delete token.id
-        }
+      if (dbUser) {
+        token.sub = dbUser.id
+        token.id = dbUser.id
+        token.role = dbUser.role
+        token.phone = dbUser.phone ?? undefined
+      } else {
+        delete token.sub
+        delete token.role
+        delete token.phone
+        delete token.id
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        if (token.sub) session.user.id = token.sub
+        const userId = token.sub ?? token.id
+        if (userId) session.user.id = userId
         session.user.role = token.role ?? "USER"
         session.user.phone = token.phone
       }
