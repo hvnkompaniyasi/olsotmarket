@@ -1,8 +1,36 @@
 import type { NextAuthOptions } from "next-auth"
+import type { JWT } from "next-auth/jwt"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 import * as Sentry from "@sentry/nextjs"
+
+const USER_SYNC_SELECT = { id: true, role: true, phone: true } as const
+
+/**
+ * Loads the current user record on every session read so role/phone changes
+ * in the database are reflected immediately, even for an already-issued JWT.
+ * Falls back to email lookup when the token id no longer exists (stale sub).
+ */
+async function loadUserForToken(token: JWT) {
+  const userId =
+    typeof token.sub === "string" ? token.sub : typeof token.id === "string" ? token.id : null
+  const email = typeof token.email === "string" ? token.email.trim().toLowerCase() : null
+
+  if (userId) {
+    const byId = await prisma.user.findUnique({
+      where: { id: userId },
+      select: USER_SYNC_SELECT,
+    })
+    if (byId) return byId
+  }
+
+  if (email) {
+    return prisma.user.findUnique({ where: { email }, select: USER_SYNC_SELECT })
+  }
+
+  return null
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -34,19 +62,8 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
       }
 
-      const userId = token.sub ?? token.id
-      const email = typeof token.email === "string" ? token.email : null
-      const dbUser = userId
-        ? await prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, role: true, phone: true },
-          })
-        : email
-          ? await prisma.user.findUnique({
-              where: { email },
-              select: { id: true, role: true, phone: true },
-            })
-          : null
+      // Always hit the DB: the JWT is only an identity hint, never the source of truth.
+      const dbUser = await loadUserForToken(token)
 
       if (dbUser) {
         token.sub = dbUser.id
@@ -55,9 +72,9 @@ export const authOptions: NextAuthOptions = {
         token.phone = dbUser.phone ?? undefined
       } else {
         delete token.sub
+        delete token.id
         delete token.role
         delete token.phone
-        delete token.id
       }
       return token
     },
