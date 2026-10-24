@@ -14,9 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (listing.status !== "ACTIVE") {
       const session = await getServerSession(authOptions)
       const isOwner = session?.user?.id === listing.userId
-      const isAdmin =
-        session?.user?.role === "ADMIN" || session?.user?.role === "SUPERADMIN"
-      if (!isOwner && !isAdmin) {
+      if (!isOwner) {
         return NextResponse.json({ error: "Topilmadi" }, { status: 404 })
       }
     }

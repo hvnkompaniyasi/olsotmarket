@@ -8,13 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role {
-  GUEST
-  USER
-  ADMIN
-  SUPERADMIN
-}
-
 enum ListingType {
   SALE
   RENT
@@ -38,6 +31,11 @@ enum PropertyCategory {
   WAREHOUSE
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -59,7 +57,6 @@ model User {
   conversationsAsBuyer  Conversation[] @relation("ConvBuyer")
   conversationsAsSeller Conversation[] @relation("ConvSeller")
   sentMessages          Message[]      @relation("MessageSender")
-  edits            ListingEdit[]
 }
 
 model Account {
@@ -117,7 +114,6 @@ model Listing {
   userId    String
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   favorites Favorite[]
-  edits     ListingEdit[]
   conversations Conversation[]
 
   @@index([status, createdAt])
@@ -156,30 +152,6 @@ model Message {
   @@index([conversationId])
 }
 
-enum EditStatus {
-  PENDING
-  APPROVED
-  REJECTED
-
-
-
-
-
-}
-
-model ListingEdit {
-  id         String     @id @default(cuid())
-  listingId  String
-  userId     String
-  changes    Json
-  status     EditStatus @default(PENDING)
-  createdAt  DateTime   @default(now())
-  reviewedAt DateTime?
-
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model Conversation {
   id        String   @id @default(cuid())
   listingId String
@@ -197,7 +169,6 @@ model Conversation {
   @@index([buyerId])
   @@index([sellerId])
 }
-
 
 model Notification {
   id        String   @id @default(cuid())

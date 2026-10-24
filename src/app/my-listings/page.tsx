@@ -9,7 +9,7 @@ import { DEAL_TYPES } from "@/lib/locations"
 import Navbar from "@/components/Navbar"
 import MobileNav from "@/components/MobileNav"
 import DeleteListingButton from "@/components/DeleteListingButton"
-import { Pencil, Home, Clock, CheckCircle, XCircle, Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { Pencil, Home, CheckCircle, XCircle, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 
 export const metadata = {
   title: "Mening e'lonlarim | Olsot Market",
@@ -21,8 +21,8 @@ export const dynamic = "force-dynamic"
 
 const PAGE_SIZE = 12
 
-const statusMap: Record<string, { label: string; cls: string; icon: typeof Clock }> = {
-  PENDING: { label: "Ko'rikda", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400", icon: Clock },
+const statusMap: Record<string, { label: string; cls: string; icon: typeof Home }> = {
+  PENDING: { label: "Ko'rikda", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400", icon: Home },
   ACTIVE: { label: "Faol", cls: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400", icon: CheckCircle },
   SOLD: { label: "Sotilgan", cls: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400", icon: CheckCircle },
   EXPIRED: { label: "Muddati tugagan", cls: "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-400", icon: XCircle },
@@ -47,9 +47,6 @@ export default async function MyListingsPage({ searchParams }: PageProps) {
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: {
-        edits: { where: { status: "PENDING" }, take: 1, orderBy: { createdAt: "desc" } },
-      },
     }),
     prisma.listing.count({ where }),
   ])
@@ -90,7 +87,6 @@ export default async function MyListingsPage({ searchParams }: PageProps) {
             {listings.map((l) => {
               const st = statusMap[l.status] || statusMap.PENDING
               const StIcon = st.icon
-              const hasPendingEdit = l.edits.length > 0
               const deal = DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type
               return (
                 <div key={l.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-3.5 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
@@ -120,11 +116,6 @@ export default async function MyListingsPage({ searchParams }: PageProps) {
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                         {l.region}{l.district ? `, ${l.district}` : ""}
                       </div>
-                      {hasPendingEdit && (
-                        <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-semibold">
-                          <Clock className="h-3 w-3" /> O'zgarish ko'rikda
-                        </div>
-                      )}
                     </div>
                   </div>
 
