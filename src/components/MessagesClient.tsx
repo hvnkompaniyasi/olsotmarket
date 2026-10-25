@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft, Send, Loader2, MessageSquare, Home } from "lucide-react"
 import Navbar from "@/components/Navbar"
 
@@ -125,7 +126,7 @@ export default function MessagesClient() {
             ) : convs.length === 0 ? (
               <div className="text-center py-16 bg-white/80 dark:bg-zinc-900/80 rounded-2xl border border-white/70 dark:border-zinc-800">
                 <MessageSquare className="h-10 w-10 text-gray-300 dark:text-zinc-700 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Hozircha xabarlar yo'q</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Hozircha xabarlar yo&apos;q</p>
                 <Link href="/listings" className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-sm font-semibold rounded-xl">
                   <Home className="h-4 w-4" /> E'lonlarni ko'rish
                 </Link>
@@ -146,7 +147,7 @@ export default function MessagesClient() {
                       }`}
                     >
                       {c.listing.images?.[0] ? (
-                        <img src={c.listing.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                        <Image src={c.listing.images[0]} alt="" width={48} height={48} sizes="48px" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
                       ) : (
                         <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-zinc-800 flex items-center justify-center flex-shrink-0"><Home className="h-5 w-5 text-green-400" /></div>
                       )}
@@ -157,7 +158,7 @@ export default function MessagesClient() {
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.listing.title}</div>
                         <div className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
-                          {last ? (last.sender.id === uid ? "Siz: " : "") + last.text : "Xabar yo'q"}
+                          {last ? (last.sender.id === uid ? "Siz: " : "") + last.text : "Xabar yo’q"}
                         </div>
                       </div>
                       {(c._count?.messages || 0) > 0 && (
@@ -188,7 +189,7 @@ export default function MessagesClient() {
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                   {conv.listing.images?.[0] && (
-                    <img src={conv.listing.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                    <Image src={conv.listing.images[0]} alt="" width={40} height={40} sizes="40px" className="w-10 h-10 rounded-lg object-cover" />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-gray-800 dark:text-white truncate">

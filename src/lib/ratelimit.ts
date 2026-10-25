@@ -32,6 +32,13 @@ export const globalApiLimiter = new Ratelimit({
   analytics: true,
 });
 
+export const aiGenerateLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, '1 d'),
+  prefix: 'ratelimit:ai:generate',
+  analytics: true,
+});
+
 export function getClientIp(forwardedFor: string | null): string {
   return forwardedFor?.split(',')[0]?.trim() || 'unknown';
 }

@@ -83,8 +83,9 @@ async function answerCallback(
 
 export async function POST(request: NextRequest) {
   const secret = process.env.TELEGRAM_SECRET_TOKEN;
-  const providedSecret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
-  if (secret && providedSecret && providedSecret !== secret) {
+  const providedSecret = request.headers.get('x-telegram-bot-api-secret-token');
+
+  if (secret && providedSecret !== null && providedSecret !== secret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

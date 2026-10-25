@@ -18,7 +18,7 @@ export const metadata = {
   description: "O'zbekiston bo'ylab barcha faol uy-joy e'lonlari — qidiring, filtrlang, xaritada ko'ring",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 interface PageProps {
   searchParams: Record<string, string | undefined>;

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useTransition, type FormEvent } from "react"
-import { AlertCircle, Loader2, Plus } from "lucide-react"
-import { createListingAction } from "@/app/listings/create/actions"
+import { useRef, useState, useTransition, type FormEvent } from "react"
+import { AlertCircle, Loader2, Plus, Sparkles } from "lucide-react"
+import { createListingAction } from "@/app/(main)/listings/create/actions"
 import { INITIAL_CREATE_LISTING_STATE, type CreateListingState } from "@/lib/listing-form"
 import { DEAL_TYPES, PROPERTY_CATEGORIES, REGIONS, getDistricts } from "@/lib/locations"
 import ListingImageUploader from "./ListingImageUploader"
@@ -29,13 +29,65 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   const [state, setState] = useState<CreateListingState>(INITIAL_CREATE_LISTING_STATE)
   const [isPending, startTransition] = useTransition()
   const [submitting, setSubmitting] = useState(false)
+  const [title, setTitle] = useState("")
+  const [price, setPrice] = useState("")
   const [region, setRegion] = useState("")
   const [district, setDistrict] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [clientError, setClientError] = useState("")
+  const [aiError, setAiError] = useState("")
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const descriptionRef = useRef<HTMLTextAreaElement>(null)
   const [draftId] = useState(() => crypto.randomUUID())
   const districts = getDistricts(region)
+
+  const generateDescription = async () => {
+    const form = formRef.current
+    if (!form) return
+
+    const formData = new FormData(form)
+    const title = String(formData.get("title") ?? "").trim()
+    const districtValue = String(formData.get("district") ?? "").trim()
+    const price = Number(formData.get("price"))
+
+    if (!title || !districtValue || !Number.isFinite(price) || price <= 0) return
+
+    setAiError("")
+    setIsGeneratingDescription(true)
+
+    try {
+      const response = await fetch("/api/ai/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          region: String(formData.get("region") ?? ""),
+          district: districtValue,
+          price,
+          category: String(formData.get("category") ?? ""),
+          type: String(formData.get("type") ?? ""),
+          rooms: formData.get("rooms") ? Number(formData.get("rooms")) : undefined,
+          area: formData.get("area") ? Number(formData.get("area")) : undefined,
+        }),
+      })
+      const result: unknown = await response.json()
+      if (!response.ok || typeof result !== "object" || result === null || !("description" in result) || typeof result.description !== "string") {
+        const message =
+          typeof result === "object" && result !== null && "error" in result && typeof result.error === "string"
+            ? result.error
+            : "Tavsifni yaratib bo‘lmadi"
+        throw new Error(message)
+      }
+
+      if (descriptionRef.current) descriptionRef.current.value = result.description
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : "Tavsifni yaratib bo‘lmadi")
+    } finally {
+      setIsGeneratingDescription(false)
+    }
+  }
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -74,7 +126,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
       {(state.error || clientError) && (
         <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-sm text-red-600 dark:text-red-400 flex gap-2">
           <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -91,12 +143,38 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] space-y-3">
         <div>
           <label htmlFor="title" className={labelCls}>Sarlavha *</label>
-          <input id="title" name="title" required minLength={5} maxLength={120} placeholder="Masalan: Chilonzorda 3 xonali kvartira" className={inputCls} />
+          <input
+            id="title"
+            name="title"
+            required
+            minLength={5}
+            maxLength={120}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Masalan: Chilonzorda 3 xonali kvartira"
+            className={inputCls}
+          />
           {state.fieldErrors?.title && <p className={errorCls}>{state.fieldErrors.title[0]}</p>}
         </div>
         <div>
-          <label htmlFor="description" className={labelCls}>Tavsif *</label>
-          <textarea id="description" name="description" required minLength={20} rows={4} maxLength={2000} placeholder="E'lon haqida batafsil..." className={`${inputCls} h-auto py-3 resize-none`} />
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label htmlFor="description" className={labelCls}>Tavsif *</label>
+            <button
+              type="button"
+              onClick={generateDescription}
+              disabled={isGeneratingDescription || !title.trim() || !district || !price.trim()}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isGeneratingDescription ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {isGeneratingDescription ? "Yaratilmoqda..." : "✨ AI yordamida matn yaratish"}
+            </button>
+          </div>
+          <textarea ref={descriptionRef} id="description" name="description" required minLength={20} rows={4} maxLength={2000} placeholder="E'lon haqida batafsil..." className={`${inputCls} h-auto py-3 resize-none`} />
+          {aiError && <p role="alert" className={errorCls}>{aiError}</p>}
           {state.fieldErrors?.description && <p className={errorCls}>{state.fieldErrors.description[0]}</p>}
         </div>
         <div className="grid grid-cols-2 gap-2.5">
@@ -120,7 +198,18 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-2.5">
           <div>
             <label htmlFor="price" className={labelCls}>Narx *</label>
-            <input id="price" name="price" type="number" required min={1} step="any" placeholder="450000000" className={inputCls} />
+            <input
+              id="price"
+              name="price"
+              type="number"
+              required
+              min={1}
+              step="any"
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+              placeholder="450000000"
+              className={inputCls}
+            />
             {state.fieldErrors?.price && <p className={errorCls}>{state.fieldErrors.price[0]}</p>}
           </div>
           <div>

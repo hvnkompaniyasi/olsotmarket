@@ -19,7 +19,7 @@ import PhoneReveal from "@/components/PhoneReveal";
 import { formatPrice } from "@/lib/format";
 import { DEAL_TYPES } from "@/lib/locations";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 const categoryNames: Record<string, string> = {
   APARTMENT: "Kvartira",

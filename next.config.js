@@ -4,6 +4,7 @@ const nextConfig = {
   output: 'standalone',
   images: {
     unoptimized: false,
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
         { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "utfs.io" },
@@ -14,7 +15,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ["lucide-react", "@base-ui/react"],
   },
   async redirects() {
     return [

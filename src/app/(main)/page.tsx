@@ -11,7 +11,7 @@ import Advantages from "@/components/Advantages"
 import Footer from "@/components/Footer"
 import MobileNav from "@/components/MobileNav"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
 
 export const metadata = {
   title: "Olsot Market — O'zbekistondagi ishonchli ko'chmas mulk platformasi",
