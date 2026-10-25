@@ -13,6 +13,13 @@ export default withAuth(
     const pathname = req.nextUrl.pathname;
 
     if (pathname.startsWith('/api/')) {
+      const isStressTest =
+        process.env.NODE_ENV !== 'production' &&
+        req.headers.get('X-Stress-Test') === 'true';
+      if (isStressTest) {
+        return NextResponse.next();
+      }
+
       if (!isRateLimitConfigured) {
         return NextResponse.json(
           { error: 'Rate limiting is not configured' },

@@ -27,7 +27,7 @@ export const listingCreateLimiter = new Ratelimit({
 
 export const globalApiLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(100, '1 m'),
+  limiter: Ratelimit.slidingWindow(150, '1 m'),
   prefix: 'olsot:global-api',
   analytics: true,
 });
