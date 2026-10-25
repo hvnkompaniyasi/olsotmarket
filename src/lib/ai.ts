@@ -34,7 +34,7 @@ export async function generateListingDescription(
   try {
     const genAI = new GoogleGenAI({ apiKey });
     const response = await genAI.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.5-flash-lite',
       contents: [
         'Ko‘chmas mulk e’loni uchun o‘zbek tilida professional va jozibali tavsif yoz.',
         'Tavsif 3–5 jumladan iborat bo‘lsin. Narxni va ko‘rsatilgan afzalliklarni ta’kidla.',
