@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import Image from "next/image"
-import { Loader2, Pencil, UploadCloud, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Loader2, Pencil, Star, UploadCloud, X } from "lucide-react"
 import {
   deleteListingImage,
   listingImagePathFromUrl,
@@ -142,6 +142,24 @@ export default function ListingImageUploader({
     }
   }
 
+  const moveImage = (index: number, direction: -1 | 1) => {
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= images.length) return
+    const reordered = [...images]
+    const currentImage = reordered[index]
+    const targetImage = reordered[targetIndex]
+    if (!currentImage || !targetImage) return
+    reordered[index] = targetImage
+    reordered[targetIndex] = currentImage
+    onChange(reordered)
+  }
+
+  const makeCover = (index: number) => {
+    const cover = images[index]
+    if (!cover || index === 0) return
+    onChange([cover, ...images.slice(0, index), ...images.slice(index + 1)])
+  }
+
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
       {images.map((url) => (
@@ -240,6 +258,38 @@ export default function ListingImageUploader({
                   Asosiy
                 </span>
               )}
+              <div className="absolute bottom-1 left-1 flex gap-1">
+                {index > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => moveImage(index, -1)}
+                    aria-label={`${index + 1}-rasmni chapga surish`}
+                    className="rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {index < images.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => moveImage(index, 1)}
+                    aria-label={`${index + 1}-rasmni o'ngga surish`}
+                    className="rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {index > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => makeCover(index)}
+                    aria-label={`${index + 1}-rasmni bosh rasm qilish`}
+                    className="rounded-full bg-black/60 p-1 text-white hover:bg-amber-500"
+                  >
+                    <Star className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -247,7 +297,7 @@ export default function ListingImageUploader({
                   inputRef.current?.click()
                 }}
                 aria-label={`${index + 1}-rasmni almashtirish`}
-                className="absolute bottom-1 left-1 rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
+                className="absolute bottom-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>

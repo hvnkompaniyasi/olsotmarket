@@ -53,12 +53,29 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   const [description, setDescription] = useState("")
   const [rooms, setRooms] = useState("")
   const [area, setArea] = useState("")
+  const [livingArea, setLivingArea] = useState("")
+  const [landArea, setLandArea] = useState("")
+  const [purpose, setPurpose] = useState("")
+  const [buildingType, setBuildingType] = useState("")
+  const [electricityPower, setElectricityPower] = useState("")
+  const [entrance, setEntrance] = useState("")
+  const [bathroom, setBathroom] = useState("")
+  const [deposit, setDeposit] = useState("")
+  const [utilitiesCondition, setUtilitiesCondition] = useState("")
+  const [floor, setFloor] = useState("")
+  const [totalFloors, setTotalFloors] = useState("")
   const [renovation, setRenovation] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null)
   const [hasGas, setHasGas] = useState(false)
   const [hasWater, setHasWater] = useState(false)
   const [hasElectricity, setHasElectricity] = useState(false)
+  const [hasSewage, setHasSewage] = useState(false)
+  const [parking, setParking] = useState(false)
+  const [elevator, setElevator] = useState(false)
+  const [furniture, setFurniture] = useState(false)
+  const [usdRate, setUsdRate] = useState<number | null>(null)
+  const [exchangeRateError, setExchangeRateError] = useState("")
   const [uploading, setUploading] = useState(false)
   const [step, setStep] = useState(0)
   const [hydrated, setHydrated] = useState(false)
@@ -72,6 +89,42 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   const formRef = useRef<HTMLFormElement>(null)
   const [draftId] = useState(() => crypto.randomUUID())
   const districts = getDistricts(region)
+  const isApartment = category === "APARTMENT" || listingType === "NEW_BUILDING"
+  const isHouse = category === "HOUSE"
+  const isLand = category === "LAND"
+  const isOffice = category === "OFFICE"
+  const isRental = listingType === "RENT" || listingType === "DAILY"
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetch("https://cbu.uz/uz/arkhiv-kursov-valyut/json/", {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`CBU API status ${response.status}`)
+        const result: unknown = await response.json()
+        if (!Array.isArray(result)) throw new Error("CBU API returned invalid data")
+        const usd = result.find(
+          (item): item is Record<string, unknown> =>
+            typeof item === "object" &&
+            item !== null &&
+            "Ccy" in item &&
+            item.Ccy === "USD",
+        )
+        if (!usd || typeof usd.Rate !== "string") {
+          throw new Error("USD rate was not found in CBU response")
+        }
+        const rate = Number(usd.Rate.replace(/\s/g, "").replace(",", "."))
+        if (!Number.isFinite(rate) || rate <= 0) throw new Error("CBU returned invalid USD rate")
+        setUsdRate(rate)
+        setExchangeRateError("")
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return
+        setExchangeRateError("Markaziy bank kursini yuklab bo'lmadi")
+      })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -100,6 +153,17 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           setDescription(typeof fields.description === "string" ? fields.description : "")
           setRooms(typeof fields.rooms === "string" ? fields.rooms : "")
           setArea(typeof fields.area === "string" ? fields.area : "")
+          setLivingArea(typeof fields.livingArea === "string" ? fields.livingArea : "")
+          setLandArea(typeof fields.landArea === "string" ? fields.landArea : "")
+          setPurpose(typeof fields.purpose === "string" ? fields.purpose : "")
+          setBuildingType(typeof fields.buildingType === "string" ? fields.buildingType : "")
+          setElectricityPower(typeof fields.electricityPower === "string" ? fields.electricityPower : "")
+          setEntrance(typeof fields.entrance === "string" ? fields.entrance : "")
+          setBathroom(typeof fields.bathroom === "string" ? fields.bathroom : "")
+          setDeposit(typeof fields.deposit === "string" ? fields.deposit : "")
+          setUtilitiesCondition(typeof fields.utilitiesCondition === "string" ? fields.utilitiesCondition : "")
+          setFloor(typeof fields.floor === "string" ? fields.floor : "")
+          setTotalFloors(typeof fields.totalFloors === "string" ? fields.totalFloors : "")
           setRenovation(typeof fields.renovation === "string" ? fields.renovation : "")
           setImages(Array.isArray(stored.images)
             ? stored.images.filter((item): item is string => typeof item === "string")
@@ -107,6 +171,10 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           setHasGas(fields.hasGas === true)
           setHasWater(fields.hasWater === true)
           setHasElectricity(fields.hasElectricity === true)
+          setHasSewage(fields.hasSewage === true)
+          setParking(fields.parking === true)
+          setElevator(fields.elevator === true)
+          setFurniture(fields.furniture === true)
           if (
             typeof fields.latitude === "string" &&
             typeof fields.longitude === "string" &&
@@ -149,8 +217,10 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
     const timer = window.setTimeout(saveDraft, 250)
     return () => window.clearTimeout(timer)
   }, [
-    hydrated, title, price, currency, listingType, category, region, district, address, description, rooms, area, renovation, images, coordinates,
-    hasGas, hasWater, hasElectricity, saveDraft,
+    hydrated, title, price, currency, listingType, category, region, district, address, description,
+    rooms, area, livingArea, landArea, purpose, buildingType, electricityPower, entrance, bathroom,
+    deposit, utilitiesCondition, floor, totalFloors, renovation, images, coordinates, hasGas,
+    hasWater, hasElectricity, hasSewage, parking, elevator, furniture, saveDraft,
   ])
 
   const slug = slugify([
@@ -406,19 +476,154 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          {price && Number.isFinite(Number(price)) && Number(price) > 0 && usdRate && (
+            <p className="text-xs text-gray-500">
+              Markaziy bank kursi ({usdRate.toLocaleString("uz-UZ")} so&apos;m/USD):{" "}
+              {currency === "USD"
+                ? `$${Number(price).toLocaleString("en-US")} ≈ ${(Number(price) * usdRate).toLocaleString("uz-UZ")} so&apos;m`
+                : `${Number(price).toLocaleString("uz-UZ")} so&apos;m ≈ $${(Number(price) / usdRate).toLocaleString("en-US", { maximumFractionDigits: 2 })}`}
+            </p>
+          )}
+          {exchangeRateError && <p className="text-xs text-amber-700">{exchangeRateError}</p>}
+
+          {(isApartment || isHouse) && (
+            <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label htmlFor="rooms" className={labelCls}>Xonalar soni</label>
               <input id="rooms" name="rooms" type="number" min={0} max={20} step={1} value={rooms} onChange={(event) => setRooms(event.target.value)} className={inputCls} />
               {getFieldError("rooms") && <p className={errorCls}>{getFieldError("rooms")}</p>}
             </div>
+            {isApartment && (
+              <div>
+                <label htmlFor="floor" className={labelCls}>Qavat</label>
+                <input id="floor" name="floor" type="number" min={0} max={200} step={1} value={floor} onChange={(event) => setFloor(event.target.value)} className={inputCls} />
+              </div>
+            )}
+            </div>
+          )}
+
+          {(isApartment || isHouse) && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label htmlFor="totalFloors" className={labelCls}>Qavatlilik</label>
+                <input id="totalFloors" name="totalFloors" type="number" min={1} max={200} step={1} value={totalFloors} onChange={(event) => setTotalFloors(event.target.value)} className={inputCls} />
+              </div>
             <div>
-              <label htmlFor="area" className={labelCls}>Maydon (m²)</label>
+              <label htmlFor="area" className={labelCls}>{isHouse ? "Uy maydoni (m²)" : "Umumiy maydon (m²)"}</label>
               <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
               {getFieldError("area") && <p className={errorCls}>{getFieldError("area")}</p>}
             </div>
-          </div>
-          <div>
+            </div>
+          )}
+
+          {isApartment && (
+            <>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="livingArea" className={labelCls}>Yashash maydoni (m²)</label>
+                  <input id="livingArea" name="livingArea" type="number" min={1} step="any" value={livingArea} onChange={(event) => setLivingArea(event.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="bathroom" className={labelCls}>Sanuzel soni</label>
+                  <input id="bathroom" name="bathroom" type="number" min={0} max={100} step={1} value={bathroom} onChange={(event) => setBathroom(event.target.value)} className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="renovation" className={labelCls}>Ta&apos;mir holati</label>
+                <input
+                  id="renovation"
+                  name="renovation"
+                  type="text"
+                  maxLength={80}
+                  value={renovation}
+                  onChange={(event) => setRenovation(event.target.value)}
+                  placeholder="Masalan: Yevroremont, o'rtacha, ta'mirsiz"
+                  className={inputCls}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
+                  <input type="checkbox" name="elevator" checked={elevator} onChange={(event) => setElevator(event.target.checked)} className="h-4 w-4 accent-green-700" />
+                  Lift bor
+                </label>
+                <label className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
+                  <input type="checkbox" name="furniture" checked={furniture} onChange={(event) => setFurniture(event.target.checked)} className="h-4 w-4 accent-green-700" />
+                  Mebel bor
+                </label>
+              </div>
+            </>
+          )}
+
+          {isLand && (
+            <>
+              <div>
+                <label htmlFor="landArea" className={labelCls}>Yer maydoni (sotix)</label>
+                <input id="landArea" name="landArea" type="number" min={0.01} step="any" value={landArea} onChange={(event) => setLandArea(event.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="purpose" className={labelCls}>Yer maqsadi</label>
+                <input id="purpose" name="purpose" maxLength={100} value={purpose} onChange={(event) => setPurpose(event.target.value)} placeholder="Masalan: uy-joy qurilishi" className={inputCls} />
+              </div>
+            </>
+          )}
+
+          {isHouse && (
+            <div>
+              <label htmlFor="landArea" className={labelCls}>Yer maydoni (sotix)</label>
+              <input id="landArea" name="landArea" type="number" min={0.01} step="any" value={landArea} onChange={(event) => setLandArea(event.target.value)} className={inputCls} />
+            </div>
+          )}
+
+          {isOffice && (
+            <>
+              <div>
+                <label htmlFor="area" className={labelCls}>Maydon (m²)</label>
+                <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="buildingType" className={labelCls}>Bino turi</label>
+                  <input id="buildingType" name="buildingType" maxLength={100} value={buildingType} onChange={(event) => setBuildingType(event.target.value)} placeholder="Biznes markaz, alohida bino..." className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="electricityPower" className={labelCls}>Elektr quvvati (kW)</label>
+                  <input id="electricityPower" name="electricityPower" type="number" min={1} step={1} value={electricityPower} onChange={(event) => setElectricityPower(event.target.value)} className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
+                  <input type="checkbox" name="parking" checked={parking} onChange={(event) => setParking(event.target.checked)} className="h-4 w-4 accent-green-700" />
+                  Avtoturargoh
+                </label>
+                <div>
+                  <label htmlFor="entrance" className={labelCls}>Kirish joyi</label>
+                  <input id="entrance" name="entrance" maxLength={100} value={entrance} onChange={(event) => setEntrance(event.target.value)} placeholder="Alohida kirish..." className={inputCls} />
+                </div>
+              </div>
+            </>
+          )}
+
+          {category === "WAREHOUSE" && (
+            <div>
+              <label htmlFor="area" className={labelCls}>Maydon (m²)</label>
+              <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
+            </div>
+          )}
+
+          {isRental && (
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label htmlFor="deposit" className={labelCls}>Depozit summasi</label>
+                <input id="deposit" name="deposit" type="number" min={0} step="any" value={deposit} onChange={(event) => setDeposit(event.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="utilitiesCondition" className={labelCls}>Kommunal to&apos;lovlar sharti</label>
+                <input id="utilitiesCondition" name="utilitiesCondition" maxLength={200} value={utilitiesCondition} onChange={(event) => setUtilitiesCondition(event.target.value)} placeholder="Narx ichida / alohida..." className={inputCls} />
+              </div>
+            </div>
+          )}
+          {category === "WAREHOUSE" && (
+            <div>
             <label htmlFor="renovation" className={labelCls}>Ta&apos;mir holati</label>
             <input
               id="renovation"
@@ -431,6 +636,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
               className={inputCls}
             />
           </div>
+          )}
         </div>
       </section>
 
@@ -562,19 +768,22 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
             <MapPicker
               value={coordinates}
               onChange={setCoordinates}
+              onAddressChange={setAddress}
               center={coordinates ? [coordinates.lat, coordinates.lng] : undefined}
             />
           )}
           <input type="hidden" name="latitude" value={coordinates?.lat ?? ""} />
           <input type="hidden" name="longitude" value={coordinates?.lng ?? ""} />
 
-          <fieldset>
-            <legend className={labelCls}>Kommunal xizmatlar</legend>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {(isHouse || isLand) && (
+            <fieldset>
+              <legend className={labelCls}>Kommunal xizmatlar</legend>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[
                 { name: "hasGas", label: "Gaz bor", checked: hasGas, setChecked: setHasGas },
                 { name: "hasWater", label: "Suv bor", checked: hasWater, setChecked: setHasWater },
                 { name: "hasElectricity", label: "Elektr bor", checked: hasElectricity, setChecked: setHasElectricity },
+                { name: "hasSewage", label: "Kanalizatsiya bor", checked: hasSewage, setChecked: setHasSewage },
               ].map((item) => (
                 <label key={item.name} className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
                   <input
@@ -587,8 +796,9 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
                   {item.label}
                 </label>
               ))}
-            </div>
-          </fieldset>
+              </div>
+            </fieldset>
+          )}
         </div>
       </div>
 
@@ -634,11 +844,12 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
             <p className="text-sm text-gray-600 dark:text-gray-300">
               {[region, district, address].filter(Boolean).join(", ") || "Manzil kiritilmagan"}
             </p>
-            {(hasGas || hasWater || hasElectricity || renovation) && (
+            {(hasGas || hasWater || hasElectricity || hasSewage || renovation) && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {hasGas && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Gaz</span>}
                 {hasWater && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Suv</span>}
                 {hasElectricity && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Svet</span>}
+                {hasSewage && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Kanalizatsiya</span>}
                 {renovation && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">Ta&apos;mir: {renovation}</span>}
               </div>
             )}
