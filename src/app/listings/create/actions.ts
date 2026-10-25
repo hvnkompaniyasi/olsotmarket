@@ -3,11 +3,18 @@
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { authOptions } from "@/lib/auth-options"
 import { prisma } from "@/lib/prisma"
 import { CreateListingSchema } from "@/lib/schemas"
 import { isListingImageUrl } from "@/lib/supabaseClient"
+import { sendListingToTelegram } from "@/lib/telegram"
 import type { CreateListingState } from "@/lib/listing-form"
+import {
+  getClientIp,
+  isRateLimitConfigured,
+  listingCreateLimiter,
+} from "@/lib/ratelimit"
 
 function text(value: FormDataEntryValue | null): string | undefined {
   if (typeof value !== "string") return undefined
@@ -27,6 +34,23 @@ export async function createListingAction(
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     redirect("/login?callbackUrl=/listings/create")
+  }
+
+  if (!isRateLimitConfigured) {
+    return { error: "E'lon yaratish xizmati vaqtincha ishlamayapti" }
+  }
+
+  try {
+    const ip = getClientIp(headers().get("x-forwarded-for"))
+    const rateLimit = await listingCreateLimiter.limit(ip)
+    if (!rateLimit.success) {
+      return {
+        error: "Juda ko'p e'lon yaratdingiz. Iltimos, keyinroq urinib ko'ring.",
+      }
+    }
+  } catch (error) {
+    console.error("createListingAction rate limit check failed:", error)
+    return { error: "E'lon yaratish xizmati vaqtincha ishlamayapti" }
   }
 
   const images = formData
@@ -60,7 +84,7 @@ export async function createListingAction(
   }
 
   try {
-    await prisma.listing.create({
+    const listing = await prisma.listing.create({
       data: {
         title: parsed.data.title,
         description: parsed.data.description ?? "",
@@ -78,6 +102,19 @@ export async function createListingAction(
         status: "PENDING",
       },
     })
+
+    try {
+      await sendListingToTelegram({
+        id: listing.id,
+        title: listing.title,
+        price: listing.price,
+        region: listing.region,
+        district: listing.district,
+        images: listing.images,
+      })
+    } catch {
+      // Telegram notification failures are logged by sendListingToTelegram.
+    }
   } catch (error) {
     console.error("createListingAction error:", error)
     return { error: "E'lonni saqlashda xatolik yuz berdi. Qayta urinib ko'ring." }

@@ -45,6 +45,7 @@ model User {
   image         String?
   password      String?
   role          Role      @default(USER)
+  isBanned      Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -57,6 +58,7 @@ model User {
   conversationsAsBuyer  Conversation[] @relation("ConvBuyer")
   conversationsAsSeller Conversation[] @relation("ConvSeller")
   sentMessages          Message[]      @relation("MessageSender")
+  adminLogs             AdminLog[]
 }
 
 model Account {
@@ -184,6 +186,19 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  targetId  String?
+  details   String?
+  createdAt DateTime @default(now())
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
 }
 
 model PushSubscription {

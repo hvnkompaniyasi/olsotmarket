@@ -27,17 +27,17 @@ const nextConfig = {
   },
 }
 
-const { withSentryConfig } = require("@sentry/nextjs/config");
+const { withSentryConfig } = require("@sentry/nextjs");
 
 module.exports = withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "hvn-kompaniyasi",
-  project: "olsot-market",
+  org: "olsot-market",
+  project: "javascript-nextjs",
 
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+  silent: true,
+  hideSourceMaps: true,
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/

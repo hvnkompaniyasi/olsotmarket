@@ -1,37 +1,75 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { withAuth } from 'next-auth/middleware';
+import { NextResponse } from 'next/server';
+import {
+  authLimiter,
+  getClientIp,
+  getRateLimitHeaders,
+  globalApiLimiter,
+  isRateLimitConfigured,
+} from '@/lib/ratelimit';
 
-// Serverless cheklovi: in-memory Map har deploy'da tozalanadi.
-const rateMap = new Map<string, { count: number; reset: number }>()
+export default withAuth(
+  async function middleware(req) {
+    const pathname = req.nextUrl.pathname;
 
-export async function middleware(req: NextRequest) {
-  const method = req.method
-  if (method !== "POST" && method !== "PATCH" && method !== "DELETE") {
-    return NextResponse.next()
-  }
-  if (!req.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.next()
-  }
+    if (pathname.startsWith('/api/')) {
+      if (!isRateLimitConfigured) {
+        return NextResponse.json(
+          { error: 'Rate limiting is not configured' },
+          { status: 503 },
+        );
+      }
 
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
-  const now = Date.now()
-  const rec = rateMap.get(ip)
+      const ip = getClientIp(req.headers.get('x-forwarded-for'));
 
-  if (!rec || now > rec.reset) {
-    rateMap.set(ip, { count: 1, reset: now + 60_000 })
-  } else {
-    rec.count++
-    if (rec.count > 60) {
-      return NextResponse.json(
-        { error: "Juda ko'p so'rov. Biroz kutib qayta urinib ko'ring." },
-        { status: 429 }
-      )
+      try {
+        const globalLimit = await globalApiLimiter.limit(ip);
+        if (!globalLimit.success) {
+          return NextResponse.json(
+            { error: 'Juda ko‘p so‘rov yuborildi. Keyinroq urinib ko‘ring.' },
+            { status: 429, headers: getRateLimitHeaders(globalLimit) },
+          );
+        }
+
+        if (pathname.startsWith('/api/auth/')) {
+          const authLimit = await authLimiter.limit(ip);
+          if (!authLimit.success) {
+            return NextResponse.json(
+              { error: 'Juda ko‘p autentifikatsiya so‘rovi yuborildi. Keyinroq urinib ko‘ring.' },
+              { status: 429, headers: getRateLimitHeaders(authLimit) },
+            );
+          }
+        }
+      } catch (error) {
+        console.error('API rate limit check failed:', error);
+        return NextResponse.json(
+          { error: 'Rate limiting xizmati vaqtincha ishlamayapti' },
+          { status: 503 },
+        );
+      }
+
+      return NextResponse.next();
     }
+
+    // Faqat /admin bilan boshlanadigan sahifalar uchun
+    if (pathname.startsWith('/admin')) {
+      // Agar foydalanuvchi ADMIN bo'lmasa, bosh sahifaga qaytaramiz
+      if (req.nextauth.token?.role !== 'ADMIN') {
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+    }
+  },
+  {
+    callbacks: {
+      authorized: ({ req, token }) =>
+        req.nextUrl.pathname.startsWith('/api/') || !!token,
+    },
+    pages: {
+      signIn: '/login',
+    },
   }
-  if (rateMap.size > 10_000) rateMap.clear()
-  return NextResponse.next()
-}
+);
 
 export const config = {
-  matcher: ["/api/:path*"],
-}
+  matcher: ['/admin/:path*', '/api/:path*'],
+};
