@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
-  MapPin, Home, Ruler, Layers, Flame, Droplets, Zap, User, Crown, BedDouble, Building2,
+  MapPin, Ruler, Flame, Droplets, Zap, User, Crown, BedDouble, Building2,
 } from "lucide-react";
 import { prisma } from "@/lib/auth";
 import { authOptions } from "@/lib/auth-options";
@@ -30,9 +30,9 @@ const categoryNames: Record<string, string> = {
 };
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
-  const l = await prisma.listing.findUnique({
-    where: { id: params.id },
-    select: { title: true, description: true, images: true, price: true, type: true, currency: true },
+  const l = await prisma.listing.findFirst({
+    where: { OR: [{ id: params.id }, { slug: params.id }] },
+    select: { slug: true, title: true, description: true, images: true, price: true, type: true, currency: true },
   });
   if (!l) return { title: "E'lon topilmadi | Olsot Market" };
   const deal = DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type;
@@ -40,6 +40,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   return {
     title: `${l.title} — ${priceStr} | Olsot Market`,
     description: (l.description || l.title).slice(0, 160),
+    alternates: { canonical: `/listing/${l.slug ?? params.id}` },
     openGraph: {
       title: l.title,
       description: (l.description || "").slice(0, 120),
@@ -51,11 +52,14 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 export default async function ListingDetailPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
 
-  const listing = await prisma.listing.findUnique({
-    where: { id: params.id },
+  const listing = await prisma.listing.findFirst({
+    where: { OR: [{ id: params.id }, { slug: params.id }] },
     include: { user: { select: { name: true, phone: true } } },
   });
   if (!listing || listing.status !== "ACTIVE") notFound();
+  if (listing.slug && params.id !== listing.slug) {
+    redirect(`/listing/${encodeURIComponent(listing.slug)}`);
+  }
 
   const isFavorite = session?.user?.id
     ? !!(await prisma.favorite.findFirst({
@@ -197,12 +201,17 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
             )}
 
             {/* ===== FACILITIES ===== */}
-            {(listing.hasGas || listing.hasWater || listing.hasElectricity) && (
+            {(listing.renovation || listing.hasGas || listing.hasWater || listing.hasElectricity) && (
               <section className="glass rounded-2xl p-4 sm:p-5">
                 <h2 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3">
                   Qulayliklar
                 </h2>
                 <div className="flex flex-wrap gap-2">
+                  {listing.renovation && (
+                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200">
+                      Ta&apos;mir: {listing.renovation}
+                    </span>
+                  )}
                   {listing.hasGas && (
                     <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
                       <Flame className="h-3.5 w-3.5 text-[#0A7C4E]" /> Gaz
@@ -236,7 +245,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         {similar.length > 0 && (
           <section className="mt-6">
             <h2 className="text-base font-extrabold text-gray-900 dark:text-white mb-3 px-1">
-              {listing.region}dagi o'xshash e'lonlar
+              {listing.region}dagi o&apos;xshash e&apos;lonlar
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {similar.map((l) => (

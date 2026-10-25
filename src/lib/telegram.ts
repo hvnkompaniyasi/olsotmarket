@@ -2,9 +2,12 @@ type ListingTelegramDetails = {
   id: string;
   title: string;
   price: number;
+  currency: string;
   region: string;
   district: string;
   images: string[];
+  latitude: number | null;
+  longitude: number | null;
 };
 
 type TelegramApiResponse = {
@@ -20,10 +23,17 @@ export async function sendListingToTelegram(listing: ListingTelegramDetails): Pr
     throw new Error('TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be configured');
   }
 
+  const price = new Intl.NumberFormat('uz-UZ').format(listing.price);
+  const formattedPrice = listing.currency === 'USD' ? `$${price}` : `${price} so'm`;
+  const mapUrl =
+    listing.latitude !== null && listing.longitude !== null
+      ? `https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`
+      : null;
   const text = [
-    `Yangi e'lon: ${listing.title}`,
-    `Narxi: ${new Intl.NumberFormat('uz-UZ').format(listing.price)} so'm`,
-    `Manzil: ${listing.region}, ${listing.district}`,
+    `🏠 ${listing.title}`,
+    `💰 Narxi: ${formattedPrice}`,
+    `📍 Manzil: ${listing.region}, ${listing.district}`,
+    ...(mapUrl ? [`🗺 Xarita: ${mapUrl}`] : []),
   ].join('\n');
   const replyMarkup = {
     inline_keyboard: [

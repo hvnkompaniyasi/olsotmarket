@@ -17,6 +17,7 @@ const generateDescriptionSchema = z.object({
   rooms: z.number().int().min(0).max(20).optional(),
   area: z.number().positive().max(100_000).optional(),
   price: z.number().positive().max(1_000_000_000_000),
+  currency: z.enum(['USD', 'UZS']).default('UZS'),
   category: z.string().min(1).max(50),
   type: z.string().min(1).max(50),
   features: z.array(z.string().trim().min(1).max(100)).max(20).optional(),

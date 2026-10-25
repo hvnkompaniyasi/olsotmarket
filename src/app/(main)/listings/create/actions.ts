@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
+import { randomUUID } from "node:crypto"
 import { authOptions } from "@/lib/auth-options"
 import { prisma } from "@/lib/prisma"
 import { CreateListingSchema } from "@/lib/schemas"
@@ -25,6 +26,16 @@ function text(value: FormDataEntryValue | null): string | undefined {
 function numberOrUndefined(value: FormDataEntryValue | null): number | undefined {
   if (typeof value !== "string" || value.trim().length === 0) return undefined
   return Number(value)
+}
+
+function slugPart(value: string): string {
+  return value
+    .toLocaleLowerCase("uz-UZ")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[ʻʼ'`’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
 }
 
 export async function createListingAction(
@@ -67,8 +78,14 @@ export async function createListingAction(
     region: text(formData.get("region")),
     district: text(formData.get("district")),
     address: text(formData.get("address")),
+    latitude: numberOrUndefined(formData.get("latitude")),
+    longitude: numberOrUndefined(formData.get("longitude")),
     rooms: numberOrUndefined(formData.get("rooms")),
     area: numberOrUndefined(formData.get("area")),
+    renovation: text(formData.get("renovation")),
+    hasGas: formData.get("hasGas") === "on",
+    hasWater: formData.get("hasWater") === "on",
+    hasElectricity: formData.get("hasElectricity") === "on",
     images,
   })
 
@@ -84,8 +101,17 @@ export async function createListingAction(
   }
 
   try {
+    const slugBase = slugPart([
+      parsed.data.rooms ? `${parsed.data.rooms}-xonalik` : "",
+      parsed.data.title,
+      parsed.data.district,
+      parsed.data.region,
+    ].filter(Boolean).join(" "));
+    const slug = `${slugBase || "elon"}-${randomUUID().slice(0, 8)}`;
     const listing = await prisma.listing.create({
       data: {
+        slug,
+        renovation: parsed.data.renovation,
         title: parsed.data.title,
         description: parsed.data.description ?? "",
         type: parsed.data.type,
@@ -95,8 +121,13 @@ export async function createListingAction(
         region: parsed.data.region,
         district: parsed.data.district ?? "",
         address: parsed.data.address ?? "",
+        latitude: parsed.data.latitude,
+        longitude: parsed.data.longitude,
         rooms: parsed.data.rooms,
         area: parsed.data.area,
+        hasGas: parsed.data.hasGas ?? false,
+        hasWater: parsed.data.hasWater ?? false,
+        hasElectricity: parsed.data.hasElectricity ?? false,
         images: parsed.data.images,
         userId: session.user.id,
         status: "PENDING",
@@ -108,9 +139,12 @@ export async function createListingAction(
         id: listing.id,
         title: listing.title,
         price: listing.price,
+        currency: listing.currency,
         region: listing.region,
         district: listing.district,
         images: listing.images,
+        latitude: listing.latitude,
+        longitude: listing.longitude,
       })
     } catch {
       // Telegram notification failures are logged by sendListingToTelegram.

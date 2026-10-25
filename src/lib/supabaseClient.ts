@@ -80,8 +80,15 @@ function getFileExtension(fileName: string): string {
   return extension || "jpg"
 }
 
-export async function uploadListingImage(file: File, listingId: string): Promise<string> {
+export async function uploadListingImage(
+  file: File,
+  listingId: string,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
   const client = getSupabaseClient()
+  if (!isUsableEnvValue(supabaseUrl) || !isUsableEnvValue(supabaseAnonKey)) {
+    throw new Error("Supabase Storage sozlanmagan")
+  }
   const folder = sanitizeSegment(listingId)
 
   if (!folder) {
@@ -92,16 +99,29 @@ export async function uploadListingImage(file: File, listingId: string): Promise
   }
 
   const path = `${folder}/${Date.now()}-${crypto.randomUUID()}.${getFileExtension(file.name)}`
-
-  const { error } = await client.storage.from(LISTING_IMAGES_BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type || undefined,
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/")
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open("POST", `${supabaseUrl}/storage/v1/object/${LISTING_IMAGES_BUCKET}/${encodedPath}`)
+    request.setRequestHeader("apikey", supabaseAnonKey)
+    request.setRequestHeader("Authorization", `Bearer ${supabaseAnonKey}`)
+    request.setRequestHeader("Content-Type", file.type || "application/octet-stream")
+    request.setRequestHeader("Cache-Control", "max-age=3600")
+    request.setRequestHeader("x-upsert", "false")
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+    }
+    request.onerror = () => reject(new Error("Rasm yuklanmadi: tarmoq xatosi"))
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        onProgress?.(100)
+        resolve()
+      } else {
+        reject(new Error(`Rasm yuklanmadi: server ${request.status} javobini qaytardi`))
+      }
+    }
+    request.send(file)
   })
-
-  if (error) {
-    throw new Error(`Rasm yuklanmadi: ${error.message}`)
-  }
 
   const { data } = client.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(path)
   if (!data.publicUrl) {

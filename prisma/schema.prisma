@@ -90,6 +90,8 @@ model Session {
 
 model Listing {
   id             String           @id @default(cuid())
+  slug           String?          @unique
+  renovation     String?
   title          String           @default("")
   description    String           @default("")
   type           ListingType

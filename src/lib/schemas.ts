@@ -15,6 +15,7 @@ export const listingSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   rooms: z.coerce.number().int().min(0).max(20).optional(),
   area: z.coerce.number().positive("Maydon musbat bo'lishi kerak").max(100_000).optional(),
+  renovation: z.string().trim().max(80).optional(),
   floor: z.number().int().min(0).max(200).optional(),
   totalFloors: z.number().int().min(1).max(200).optional(),
   hasGas: z.boolean().optional(),
