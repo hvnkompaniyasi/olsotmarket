@@ -47,6 +47,8 @@ export default function MapPicker({ value, onChange, center }: MapPickerProps) {
         onChangeRef.current({ lat: event.latlng.lat, lng: event.latlng.lng })
       })
       mapRef.current = map
+      map.whenReady(() => map?.invalidateSize())
+      window.setTimeout(() => map?.invalidateSize(), 100)
     })
 
     return () => {
@@ -65,9 +67,18 @@ export default function MapPicker({ value, onChange, center }: MapPickerProps) {
       if (!map) return
 
       if (value) {
-        if (markerRef.current) markerRef.current.setLatLng([value.lat, value.lng])
-        else markerRef.current = leaflet.marker([value.lat, value.lng]).addTo(map)
-        map.setView([value.lat, value.lng], Math.max(map.getZoom(), 14))
+        if (markerRef.current) {
+          markerRef.current.setLatLng([value.lat, value.lng])
+        } else {
+          markerRef.current = leaflet
+            .marker([value.lat, value.lng], { draggable: true })
+            .addTo(map)
+          markerRef.current.on("dragend", () => {
+            const position = markerRef.current?.getLatLng()
+            if (position) onChangeRef.current({ lat: position.lat, lng: position.lng })
+          })
+        }
+        if (map.getZoom() < 10) map.setView([value.lat, value.lng], 14)
       } else if (markerRef.current) {
         markerRef.current.remove()
         markerRef.current = null
@@ -86,7 +97,7 @@ export default function MapPicker({ value, onChange, center }: MapPickerProps) {
     <div className="overflow-hidden rounded-xl border border-gray-200">
       <div ref={containerRef} className="h-64 w-full" aria-label="E'lon xaritasi" />
       <p className="bg-white px-3 py-2 text-xs text-gray-500">
-        Xaritani bosib e&apos;lon joylashuvini belgilang
+        Xaritani bosing yoki belgini sudrab joylashuvni belgilang
         {value && ` · ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}`}
       </p>
     </div>

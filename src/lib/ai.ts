@@ -25,6 +25,11 @@ export type ListingGeneratedData = {
   renovation?: string;
 };
 
+export type ImprovedListingCopy = {
+  title: string;
+  description: string;
+};
+
 function formatPrice(price: number, currency: 'USD' | 'UZS' = 'UZS'): string {
   const formatted = new Intl.NumberFormat('uz-UZ').format(price);
   return currency === 'USD' ? `$${formatted}` : `${formatted} so'm`;
@@ -150,5 +155,61 @@ export async function generateListingData(
   } catch (error) {
     console.error('Smart listing generation failed:', error);
     throw new Error('AI orqali e’lon ma’lumotlarini yaratib bo‘lmadi');
+  }
+}
+
+export async function improveListingCopy(
+  title: string,
+  description: string,
+): Promise<ImprovedListingCopy> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not configured');
+  }
+
+  try {
+    const genAI = new GoogleGenAI({ apiKey });
+    const response = await genAI.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [
+        'Ko‘chmas mulk e’lonini tabiiy va ravon o‘zbek tilida professional tarzda tahrirla.',
+        'Sarlavhani ixcham va jozibali qil. Tavsifni ishonchli, tushunarli va grammatik jihatdan to‘g‘ri yoz.',
+        'Faqat berilgan faktlarni saqla; yangi xususiyat, va’da, narx yoki manzil to‘qima.',
+        'Faqat JSON qaytar: {"title":"...","description":"..."}',
+        '',
+        `Sarlavha: ${title}`,
+        `Tavsif: ${description}`,
+      ].join('\n'),
+    });
+    const text = response.text?.trim();
+    if (!text) throw new Error('Gemini returned an empty response');
+
+    const parsed: unknown = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('title' in parsed) ||
+      typeof parsed.title !== 'string' ||
+      !('description' in parsed) ||
+      typeof parsed.description !== 'string'
+    ) {
+      throw new Error('Gemini returned invalid listing copy');
+    }
+
+    const improvedTitle = parsed.title.trim();
+    const improvedDescription = parsed.description.trim();
+    if (
+      improvedTitle.length < 5 ||
+      improvedTitle.length > 120 ||
+      improvedDescription.length < 20 ||
+      improvedDescription.length > 2000
+    ) {
+      throw new Error('Gemini returned listing copy outside allowed limits');
+    }
+
+    return { title: improvedTitle, description: improvedDescription };
+  } catch (error) {
+    console.error('Listing copy improvement failed:', error);
+    throw new Error('E’lon matnini AI bilan yaxshilab bo‘lmadi');
   }
 }

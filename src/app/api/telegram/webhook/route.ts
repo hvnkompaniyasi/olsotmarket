@@ -9,7 +9,7 @@ type TelegramCallbackQuery = {
   message?: {
     message_id: number;
     chat: { id: number };
-    caption?: string;
+    text?: string;
   };
 };
 
@@ -31,8 +31,8 @@ function readCallbackQuery(body: unknown): TelegramCallbackQuery | null {
       message = {
         message_id: messageId,
         chat: { id: chatId },
-        ...(typeof callback.message.caption === 'string'
-          ? { caption: callback.message.caption }
+        ...(typeof callback.message.text === 'string'
+          ? { text: callback.message.text }
           : {}),
       };
     }
@@ -162,12 +162,11 @@ export async function POST(request: NextRequest) {
         : '❌ Rad etildi'
       : 'E’lon avval ko’rib chiqilgan yoki topilmadi';
 
-    if (callback.message) {
-      const method = callback.message.caption ? 'editMessageCaption' : 'editMessageText';
-      await callTelegramApi(token, method, {
+    if (callback.message?.text) {
+      await callTelegramApi(token, 'editMessageText', {
         chat_id: callback.message.chat.id,
         message_id: callback.message.message_id,
-        [method === 'editMessageCaption' ? 'caption' : 'text']: callbackMessage,
+        text: callbackMessage,
       });
     }
 

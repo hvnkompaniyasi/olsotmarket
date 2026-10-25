@@ -132,19 +132,32 @@ export async function createListingAction(
         userId: session.user.id,
         status: "PENDING",
       },
+      include: { user: { select: { name: true, phone: true } } },
     })
 
     try {
       await sendListingToTelegram({
         id: listing.id,
+        slug: listing.slug,
         title: listing.title,
+        description: listing.description,
         price: listing.price,
         currency: listing.currency,
         region: listing.region,
         district: listing.district,
+        address: listing.address,
+        rooms: listing.rooms,
+        area: listing.area,
+        floor: listing.floor,
+        totalFloors: listing.totalFloors,
+        renovation: listing.renovation,
+        hasGas: listing.hasGas,
+        hasWater: listing.hasWater,
+        hasElectricity: listing.hasElectricity,
         images: listing.images,
         latitude: listing.latitude,
         longitude: listing.longitude,
+        user: listing.user,
       })
     } catch {
       // Telegram notification failures are logged by sendListingToTelegram.

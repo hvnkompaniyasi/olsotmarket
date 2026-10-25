@@ -1,19 +1,26 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react"
-import { AlertCircle, Check, ChevronLeft, ChevronRight, Loader2, MapPin, Plus, Sparkles } from "lucide-react"
+import dynamic from "next/dynamic"
+import Image from "next/image"
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2, MapPin, Plus, Sparkles } from "lucide-react"
 import { createListingAction } from "@/app/(main)/listings/create/actions"
 import { INITIAL_CREATE_LISTING_STATE, type CreateListingState } from "@/lib/listing-form"
 import { DEAL_TYPES, PROPERTY_CATEGORIES, REGIONS, getDistricts } from "@/lib/locations"
 import ListingImageUploader from "./ListingImageUploader"
-import MapPicker, { type Coordinates } from "./MapPicker"
+import type { Coordinates } from "./MapPicker"
+
+const MapPicker = dynamic(() => import("./MapPicker"), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse rounded-xl bg-gray-100" />,
+})
 
 const inputCls =
   "h-12 w-full px-4 bg-white/90 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-800 dark:text-white outline-none focus:border-[#0A7C4E]"
 const labelCls = "text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 block"
 const errorCls = "mt-1 text-xs text-red-600 dark:text-red-400"
 const draftKey = "olsot:create-listing:draft:v1"
-const steps = ["Asosiy", "Rasm va tavsif", "Manzil va qulayliklar"]
+const steps = ["Asosiy ma'lumot", "Manzil va yakunlash"]
 
 type DraftValue = string | boolean
 
@@ -37,8 +44,12 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   const [submitting, setSubmitting] = useState(false)
   const [title, setTitle] = useState("")
   const [price, setPrice] = useState("")
+  const [currency, setCurrency] = useState("UZS")
+  const [listingType, setListingType] = useState("SALE")
+  const [category, setCategory] = useState("APARTMENT")
   const [region, setRegion] = useState("")
   const [district, setDistrict] = useState("")
+  const [address, setAddress] = useState("")
   const [description, setDescription] = useState("")
   const [rooms, setRooms] = useState("")
   const [area, setArea] = useState("")
@@ -55,7 +66,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
   const [clientError, setClientError] = useState("")
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [aiError, setAiError] = useState("")
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+  const [isImprovingCopy, setIsImprovingCopy] = useState(false)
   const [isSmartFilling, setIsSmartFilling] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
@@ -80,8 +91,12 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           }
           setTitle(typeof fields.title === "string" ? fields.title : "")
           setPrice(typeof fields.price === "string" ? fields.price : "")
+          setCurrency(typeof fields.currency === "string" ? fields.currency : "UZS")
+          setListingType(typeof fields.type === "string" ? fields.type : "SALE")
+          setCategory(typeof fields.category === "string" ? fields.category : "APARTMENT")
           setRegion(typeof fields.region === "string" ? fields.region : "")
           setDistrict(typeof fields.district === "string" ? fields.district : "")
+          setAddress(typeof fields.address === "string" ? fields.address : "")
           setDescription(typeof fields.description === "string" ? fields.description : "")
           setRooms(typeof fields.rooms === "string" ? fields.rooms : "")
           setArea(typeof fields.area === "string" ? fields.area : "")
@@ -134,7 +149,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
     const timer = window.setTimeout(saveDraft, 250)
     return () => window.clearTimeout(timer)
   }, [
-    hydrated, title, price, region, district, description, rooms, area, renovation, images, coordinates,
+    hydrated, title, price, currency, listingType, category, region, district, address, description, rooms, area, renovation, images, coordinates,
     hasGas, hasWater, hasElectricity, saveDraft,
   ])
 
@@ -152,19 +167,13 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
     if (targetStep === 0) {
       if (title.trim().length < 5) errors.title = "Sarlavha kamida 5 belgidan iborat bo'lsin"
       if (!Number.isFinite(Number(price)) || Number(price) <= 0) errors.price = "Narxni to'g'ri kiriting"
-    }
-    if (targetStep === 1) {
       if (description.trim().length < 20) errors.description = "Tavsif kamida 20 belgidan iborat bo'lsin"
       if (images.length === 0) errors.images = "Kamida 1 ta rasm yuklang"
     }
-    if (targetStep === 2) {
+    if (targetStep === 1) {
       if (!region) errors.region = "Viloyatni tanlang"
       if (!district) errors.district = "Tuman yoki shaharni tanlang"
-      const addressInput = formRef.current?.elements.namedItem("address")
-      if (
-        addressInput instanceof HTMLInputElement &&
-        addressInput.value.trim().length < 5
-      ) errors.address = "Manzil kamida 5 belgidan iborat bo'lsin"
+      if (address.trim().length < 5) errors.address = "Manzil kamida 5 belgidan iborat bo'lsin"
     }
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
@@ -175,50 +184,37 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
     return true
   }
 
-  const generateDescription = async () => {
-    const form = formRef.current
-    if (!form) return
-    const formData = new FormData(form)
+  const improveListingCopy = async () => {
     setAiError("")
-    setIsGeneratingDescription(true)
+    setIsImprovingCopy(true)
     try {
-      const response = await fetch("/api/ai/generate-description", {
+      const response = await fetch("/api/ai/improve-listing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          region,
-          district,
-          price: Number(price),
-          currency: String(formData.get("currency") ?? "UZS"),
-          category: String(formData.get("category") ?? "APARTMENT"),
-          type: String(formData.get("type") ?? "SALE"),
-          rooms: rooms ? Number(rooms) : undefined,
-          area: area ? Number(area) : undefined,
-          features: [
-            hasGas ? "gaz" : "",
-            hasWater ? "suv" : "",
-            hasElectricity ? "elektr" : "",
-          ].filter(Boolean),
+          description,
         }),
       })
       const result: unknown = await response.json()
       if (
         !response.ok ||
         !isRecord(result) ||
+        typeof result.title !== "string" ||
         typeof result.description !== "string"
       ) {
         throw new Error(
           isRecord(result) && typeof result.error === "string"
             ? result.error
-            : "Tavsifni yaratib bo'lmadi",
+            : "E'lon matnini yaxshilab bo'lmadi",
         )
       }
+      setTitle(result.title)
       setDescription(result.description)
     } catch (error) {
-      setAiError(error instanceof Error ? error.message : "Tavsifni yaratib bo'lmadi")
+      setAiError(error instanceof Error ? error.message : "E'lon matnini yaxshilab bo'lmadi")
     } finally {
-      setIsGeneratingDescription(false)
+      setIsImprovingCopy(false)
     }
   }
 
@@ -278,7 +274,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
       setStep(1)
       return
     }
-    for (const targetStep of [0, 1, 2]) {
+    for (const targetStep of [0, 1]) {
       if (!validateStep(targetStep)) {
         setStep(targetStep)
         return
@@ -335,26 +331,16 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
 
       <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
         <div className="mb-3 flex items-center justify-between">
-          {steps.map((label, index) => (
-            <div key={label} className="flex flex-1 items-center last:flex-none">
-              <div className="flex items-center gap-2">
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                  index <= step ? "bg-green-700 text-white" : "bg-gray-100 text-gray-500"
-                }`}>
-                  {index < step ? <Check className="h-4 w-4" /> : index + 1}
-                </span>
-                <span className={`hidden text-xs font-semibold sm:block ${
-                  index === step ? "text-green-800" : "text-gray-500"
-                }`}>{label}</span>
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`mx-2 h-0.5 flex-1 ${index < step ? "bg-green-700" : "bg-gray-200"}`} />
-              )}
-            </div>
-          ))}
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-700 text-xs font-bold text-white">
+              {step + 1}
+            </span>
+            <span className="text-sm font-semibold text-green-800">{steps[step]}</span>
+          </div>
+          <span className="text-xs font-medium text-gray-500">{step + 1}/2-qadam</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-          <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${((step + 1) / 2) * 100}%` }} />
         </div>
         {slug && (
           <p className="mt-3 truncate text-[11px] text-gray-500" title={slug}>
@@ -384,13 +370,13 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label htmlFor="type" className={labelCls}>Bitim turi *</label>
-              <select id="type" name="type" defaultValue="SALE" className={inputCls}>
+              <select id="type" name="type" value={listingType} onChange={(event) => setListingType(event.target.value)} className={inputCls}>
                 {DEAL_TYPES.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </div>
             <div>
               <label htmlFor="category" className={labelCls}>Kategoriya *</label>
-              <select id="category" name="category" defaultValue="APARTMENT" className={inputCls}>
+              <select id="category" name="category" value={category} onChange={(event) => setCategory(event.target.value)} className={inputCls}>
                 {PROPERTY_CATEGORIES.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </div>
@@ -414,7 +400,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
             </div>
             <div>
               <label htmlFor="currency" className={labelCls}>Valyuta</label>
-              <select id="currency" name="currency" defaultValue="UZS" className={inputCls}>
+              <select id="currency" name="currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className={inputCls}>
                 <option value="UZS">UZS</option>
                 <option value="USD">USD</option>
               </select>
@@ -448,7 +434,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         </div>
       </section>
 
-      <section className={`${step === 1 ? "block" : "hidden"} space-y-4`}>
+      <section className={`${step === 0 ? "block" : "hidden"} space-y-4`}>
         <ListingImageUploader
           images={images}
           onChange={setImages}
@@ -478,15 +464,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <label htmlFor="description" className={labelCls}>Tavsif *</label>
-            <button
-              type="button"
-              onClick={generateDescription}
-              disabled={isGeneratingDescription || !title.trim() || !district || !price.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isGeneratingDescription ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              {isGeneratingDescription ? "Yaratilmoqda..." : "AI yordamida matn yaratish"}
-            </button>
+            <span className="text-xs text-gray-500">Keyingi qadamda e&apos;lonni ko&apos;rib chiqing va AI bilan tahrirlang</span>
           </div>
           <textarea
             id="description"
@@ -506,7 +484,8 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         </div>
       </section>
 
-      <section className={`${step === 2 ? "block" : "hidden"} rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900`}>
+      <section className={`${step === 1 ? "block" : "hidden"} space-y-4`}>
+      <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2.5">
             <div>
@@ -551,6 +530,8 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
               required
               minLength={5}
               maxLength={200}
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
               placeholder="Ko'cha, uy raqami"
               className={inputCls}
               aria-invalid={Boolean(getFieldError("address"))}
@@ -609,6 +590,67 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
             </div>
           </fieldset>
         </div>
+      </div>
+
+      <section className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm dark:bg-zinc-900">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white">E&apos;lonni ko&apos;rib chiqish</h2>
+            <p className="text-xs text-gray-500">Saytda ko&apos;rinishidan oldingi taxminiy ko&apos;rinish</p>
+          </div>
+          <button
+            type="button"
+            onClick={improveListingCopy}
+            disabled={isImprovingCopy || title.trim().length < 5 || description.trim().length < 20}
+            className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isImprovingCopy
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Sparkles className="h-4 w-4" />}
+            {isImprovingCopy ? "AI tahrir qilmoqda..." : "AI bilan yaxshilash"}
+          </button>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700">
+          {images[0] ? (
+            <div className="relative h-48 w-full bg-gray-100">
+              <Image src={images[0]} alt={title || "E'lon rasmi"} fill sizes="(max-width: 768px) 100vw, 640px" className="object-cover" />
+            </div>
+          ) : (
+            <div className="flex h-36 items-center justify-center bg-gray-50 text-sm text-gray-400">
+              E&apos;lon rasmi tanlanmagan
+            </div>
+          )}
+          <div className="space-y-2 p-4">
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
+              {title || "E'lon sarlavhasi"}
+            </p>
+            <p className="text-lg font-extrabold text-green-700">
+              {price && Number.isFinite(Number(price))
+                ? currency === "USD"
+                  ? `$${Number(price).toLocaleString("uz-UZ")}`
+                  : `${Number(price).toLocaleString("uz-UZ")} so'm`
+                : "Narx kiritilmagan"}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {[region, district, address].filter(Boolean).join(", ") || "Manzil kiritilmagan"}
+            </p>
+            {(hasGas || hasWater || hasElectricity || renovation) && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {hasGas && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Gaz</span>}
+                {hasWater && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Suv</span>}
+                {hasElectricity && <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-800">Svet</span>}
+                {renovation && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">Ta&apos;mir: {renovation}</span>}
+              </div>
+            )}
+            {description && (
+              <p className="line-clamp-3 pt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                {description}
+              </p>
+            )}
+          </div>
+        </div>
+        {aiError && <p role="alert" className={errorCls}>{aiError}</p>}
+      </section>
       </section>
 
       {draftError && <p role="status" className="text-xs text-amber-700">{draftError}</p>}
