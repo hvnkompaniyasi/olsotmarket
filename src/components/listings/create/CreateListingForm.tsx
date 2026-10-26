@@ -3,7 +3,21 @@
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
-import { AlertCircle, ChevronLeft, ChevronRight, Loader2, MapPin, Plus, Sparkles } from "lucide-react"
+import {
+  AlertCircle,
+  Armchair,
+  Building2,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Droplets,
+  Flame,
+  Loader2,
+  MapPin,
+  Plus,
+  Sparkles,
+  Zap,
+} from "lucide-react"
 import { createListingAction } from "@/app/(main)/listings/create/actions"
 import { INITIAL_CREATE_LISTING_STATE, type CreateListingState } from "@/lib/listing-form"
 import { DEAL_TYPES, PROPERTY_CATEGORIES, REGIONS, getDistricts } from "@/lib/locations"
@@ -384,7 +398,7 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
       onSubmit={onSubmit}
       onChange={() => window.setTimeout(saveDraft, 0)}
       noValidate
-      className="space-y-4"
+      className="space-y-4 pb-24 lg:pb-0"
     >
       {(state.error || clientError) && (
         <div className="flex gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600" role="alert">
@@ -399,18 +413,32 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         </div>
       )}
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-700 text-xs font-bold text-white">
-              {step + 1}
-            </span>
-            <span className="text-sm font-semibold text-green-800">{steps[step]}</span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+              Bosqich {step + 1} / 2
+            </p>
+            <h2 className="mt-0.5 text-base font-bold text-gray-900 dark:text-white">
+              {steps[step]}
+            </h2>
           </div>
-          <span className="text-xs font-medium text-gray-500">{step + 1}/2-qadam</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 text-sm font-bold text-green-800 dark:bg-green-500/10 dark:text-green-300">
+            {step + 1}/2
+          </span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-          <div className="h-full rounded-full bg-green-700 transition-all" style={{ width: `${((step + 1) / 2) * 100}%` }} />
+        <div
+          className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800"
+          role="progressbar"
+          aria-label="E'lon yaratish bosqichi"
+          aria-valuemin={1}
+          aria-valuemax={2}
+          aria-valuenow={step + 1}
+        >
+          <div
+            className="h-full rounded-full bg-green-700 transition-all"
+            style={{ width: `${((step + 1) / 2) * 100}%` }}
+          />
         </div>
         {slug && (
           <p className="mt-3 truncate text-[11px] text-gray-500" title={slug}>
@@ -419,10 +447,39 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
         )}
       </div>
 
-      <section className={`${step === 0 ? "block" : "hidden"} rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900`}>
-        <div className="space-y-3">
+      <section className={`${step === 0 ? "block" : "hidden"} space-y-4`}>
+        <div>
+          <ListingImageUploader
+            images={images}
+            onChange={setImages}
+            onBusyChange={setUploading}
+            onError={(message) => setFieldErrors((current) => ({ ...current, images: message }))}
+            draftId={draftId}
+            disabled={!storageReady}
+          />
+          {getFieldError("images") && <p className={errorCls}>{getFieldError("images")}</p>}
+        </div>
+
+        {images.length > 0 && (
+          <div className="rounded-2xl border border-green-100 bg-green-50/70 p-4 dark:border-green-900 dark:bg-green-950/30">
+            <button
+              type="button"
+              onClick={smartFill}
+              disabled={isSmartFilling || uploading}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800 disabled:opacity-50"
+            >
+              {isSmartFilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {isSmartFilling ? "Rasm tahlil qilinmoqda..." : "AI orqali to'ldirish"}
+            </button>
+            <p className="mt-2 text-xs text-green-900 dark:text-green-200">
+              AI rasmga qarab sarlavha, tavsif va xonalar sonini taxmin qiladi. Natijani tekshirib chiqing.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div>
-            <label htmlFor="title" className={labelCls}>Sarlavha *</label>
+            <label htmlFor="title" className={labelCls}>E&apos;lon sarlavhasi *</label>
             <input
               id="title"
               name="title"
@@ -437,7 +494,31 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
             />
             {getFieldError("title") && <p className={errorCls}>{getFieldError("title")}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label htmlFor="description" className={labelCls}>Tavsif *</label>
+              <span className="text-xs text-gray-400">{description.length}/2000</span>
+            </div>
+            <textarea
+              id="description"
+              name="description"
+              required
+              minLength={20}
+              rows={4}
+              maxLength={2000}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Uy yoki xonadon haqida batafsil yozing..."
+              className={`${inputCls} h-auto resize-y py-3`}
+              aria-invalid={Boolean(getFieldError("description"))}
+            />
+            {getFieldError("description") && <p className={errorCls}>{getFieldError("description")}</p>}
+            {aiError && <p role="alert" className={errorCls}>{aiError}</p>}
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="type" className={labelCls}>Bitim turi *</label>
               <select id="type" name="type" value={listingType} onChange={(event) => setListingType(event.target.value)} className={inputCls}>
@@ -451,9 +532,10 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_110px] gap-2.5">
-            <div>
-              <label htmlFor="price" className={labelCls}>Narx *</label>
+
+          <div>
+            <label htmlFor="price" className={labelCls}>Narx *</label>
+            <div className="flex gap-2">
               <input
                 id="price"
                 name="price"
@@ -462,125 +544,196 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
                 step="any"
                 value={price}
                 onChange={(event) => setPrice(event.target.value)}
-                placeholder="450000000"
-                className={inputCls}
+                placeholder="Narxni kiriting"
+                className={`${inputCls} min-w-0 flex-1`}
                 aria-invalid={Boolean(getFieldError("price"))}
               />
-              {getFieldError("price") && <p className={errorCls}>{getFieldError("price")}</p>}
-            </div>
-            <div>
-              <label htmlFor="currency" className={labelCls}>Valyuta</label>
-              <select id="currency" name="currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className={inputCls}>
-                <option value="UZS">UZS</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
-          </div>
-          {price && Number.isFinite(Number(price)) && Number(price) > 0 && usdRate && (
-            <p className="text-xs text-gray-500">
-              Markaziy bank kursi ({usdRate.toLocaleString("uz-UZ")} so&apos;m/USD):{" "}
-              {currency === "USD"
-                ? `$${Number(price).toLocaleString("en-US")} ≈ ${(Number(price) * usdRate).toLocaleString("uz-UZ")} so&apos;m`
-                : `${Number(price).toLocaleString("uz-UZ")} so&apos;m ≈ $${(Number(price) / usdRate).toLocaleString("en-US", { maximumFractionDigits: 2 })}`}
-            </p>
-          )}
-          {exchangeRateError && <p className="text-xs text-amber-700">{exchangeRateError}</p>}
-
-          {(isApartment || isHouse) && (
-            <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label htmlFor="rooms" className={labelCls}>Xonalar soni</label>
-              <input id="rooms" name="rooms" type="number" min={0} max={20} step={1} value={rooms} onChange={(event) => setRooms(event.target.value)} className={inputCls} />
-              {getFieldError("rooms") && <p className={errorCls}>{getFieldError("rooms")}</p>}
-            </div>
-            {isApartment && (
-              <div>
-                <label htmlFor="floor" className={labelCls}>Qavat</label>
-                <input id="floor" name="floor" type="number" min={0} max={200} step={1} value={floor} onChange={(event) => setFloor(event.target.value)} className={inputCls} />
+              <div className="flex shrink-0 rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-zinc-700 dark:bg-zinc-800">
+                {(["UZS", "USD"] as const).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={currency === item}
+                    onClick={() => setCurrency(item)}
+                    className={`min-w-14 rounded-lg px-2 text-xs font-bold transition ${
+                      currency === item
+                        ? "bg-green-700 text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-900 dark:text-gray-300"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
               </div>
+              <input type="hidden" name="currency" value={currency} />
+            </div>
+            {getFieldError("price") && <p className={errorCls}>{getFieldError("price")}</p>}
+            {price && Number.isFinite(Number(price)) && Number(price) > 0 && usdRate && (
+              <p className="mt-2 text-xs text-gray-500">
+                Markaziy bank kursi ({usdRate.toLocaleString("uz-UZ")} so&apos;m/USD):{" "}
+                {currency === "USD"
+                  ? `$${Number(price).toLocaleString("en-US")} ≈ ${(Number(price) * usdRate).toLocaleString("uz-UZ")} so&apos;m`
+                  : `${Number(price).toLocaleString("uz-UZ")} so&apos;m ≈ $${(Number(price) / usdRate).toLocaleString("en-US", { maximumFractionDigits: 2 })}`}
+              </p>
             )}
-            </div>
-          )}
+            {exchangeRateError && <p className="mt-2 text-xs text-amber-700">{exchangeRateError}</p>}
+          </div>
 
           {(isApartment || isHouse) && (
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label htmlFor="totalFloors" className={labelCls}>Qavatlilik</label>
-                <input id="totalFloors" name="totalFloors" type="number" min={1} max={200} step={1} value={totalFloors} onChange={(event) => setTotalFloors(event.target.value)} className={inputCls} />
-              </div>
-            <div>
-              <label htmlFor="area" className={labelCls}>{isHouse ? "Uy maydoni (m²)" : "Umumiy maydon (m²)"}</label>
-              <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
-              {getFieldError("area") && <p className={errorCls}>{getFieldError("area")}</p>}
-            </div>
-            </div>
-          )}
-
-          {isApartment && (
             <>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label htmlFor="livingArea" className={labelCls}>Yashash maydoni (m²)</label>
-                  <input id="livingArea" name="livingArea" type="number" min={1} step="any" value={livingArea} onChange={(event) => setLivingArea(event.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label htmlFor="bathroom" className={labelCls}>Sanuzel soni</label>
-                  <input id="bathroom" name="bathroom" type="number" min={0} max={100} step={1} value={bathroom} onChange={(event) => setBathroom(event.target.value)} className={inputCls} />
-                </div>
-              </div>
               <div>
-                <label htmlFor="renovation" className={labelCls}>Ta&apos;mir holati</label>
+                <p className={labelCls}>Xonalar soni</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {[1, 2, 3, 4, 5].map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      aria-pressed={rooms === String(count)}
+                      onClick={() => setRooms(String(count))}
+                      className={`h-11 rounded-xl border text-sm font-semibold transition ${
+                        rooms === String(count)
+                          ? "border-green-700 bg-green-700 text-white"
+                          : "border-gray-200 bg-white text-gray-700 hover:border-green-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-200"
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
                 <input
-                  id="renovation"
-                  name="renovation"
-                  type="text"
-                  maxLength={80}
-                  value={renovation}
-                  onChange={(event) => setRenovation(event.target.value)}
-                  placeholder="Masalan: Yevroremont, o'rtacha, ta'mirsiz"
-                  className={inputCls}
+                  type="number"
+                  min={0}
+                  max={20}
+                  step={1}
+                  value={rooms}
+                  onChange={(event) => setRooms(event.target.value)}
+                  aria-label="Xonalar sonini kiriting"
+                  placeholder="Boshqa son"
+                  className={`${inputCls} mt-2 h-10`}
                 />
+                <label htmlFor="rooms" className="sr-only">Xonalar soni</label>
+                <input type="hidden" name="rooms" value={rooms} />
+                {getFieldError("rooms") && <p className={errorCls}>{getFieldError("rooms")}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
-                  <input type="checkbox" name="elevator" checked={elevator} onChange={(event) => setElevator(event.target.checked)} className="h-4 w-4 accent-green-700" />
-                  Lift bor
-                </label>
-                <label className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
-                  <input type="checkbox" name="furniture" checked={furniture} onChange={(event) => setFurniture(event.target.checked)} className="h-4 w-4 accent-green-700" />
-                  Mebel bor
-                </label>
+              <div className="grid grid-cols-2 gap-3">
+                {isApartment && (
+                  <div>
+                    <label htmlFor="floor" className={labelCls}>Qavat</label>
+                    <input id="floor" name="floor" type="number" min={0} max={200} step={1} value={floor} onChange={(event) => setFloor(event.target.value)} className={inputCls} placeholder="Masalan, 3" />
+                  </div>
+                )}
+                <div>
+                  <label htmlFor="totalFloors" className={labelCls}>Qavatlilik</label>
+                  <input id="totalFloors" name="totalFloors" type="number" min={1} max={200} step={1} value={totalFloors} onChange={(event) => setTotalFloors(event.target.value)} className={inputCls} placeholder="Masalan, 9" />
+                </div>
               </div>
             </>
           )}
+        </div>
 
-          {isLand && (
-            <>
+        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <fieldset>
+            <legend className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Kommunal xizmatlar</legend>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                { name: "hasGas", label: "Gaz", checked: hasGas, setChecked: setHasGas, Icon: Flame },
+                { name: "hasWater", label: "Suv", checked: hasWater, setChecked: setHasWater, Icon: Droplets },
+                { name: "hasElectricity", label: "Svet", checked: hasElectricity, setChecked: setHasElectricity, Icon: Zap },
+                { name: "hasSewage", label: "Kanalizatsiya", checked: hasSewage, setChecked: setHasSewage, Icon: Droplets },
+              ].map(({ name, label, checked, setChecked, Icon }) => (
+                <label key={name} className="group cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name={name}
+                    checked={checked}
+                    onChange={(event) => setChecked(event.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 transition peer-checked:border-green-700 peer-checked:bg-green-50 peer-checked:text-green-800 group-hover:border-green-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-gray-300 dark:peer-checked:bg-green-950/40">
+                    <Icon className="h-5 w-5" />
+                    {label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Qulayliklar</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { name: "furniture", label: "Mebel", checked: furniture, setChecked: setFurniture, Icon: Armchair },
+                { name: "elevator", label: "Lift", checked: elevator, setChecked: setElevator, Icon: Building2 },
+                { name: "parking", label: "Avtoturargoh", checked: parking, setChecked: setParking, Icon: Car },
+              ].map(({ name, label, checked, setChecked, Icon }) => (
+                <label key={name} className="cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name={name}
+                    checked={checked}
+                    onChange={(event) => setChecked(event.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span className="flex min-h-14 items-center justify-center gap-1 rounded-xl border border-gray-200 px-2 text-center text-xs font-semibold text-gray-600 transition peer-checked:border-green-700 peer-checked:bg-green-50 peer-checked:text-green-800 hover:border-green-400 dark:border-zinc-700 dark:text-gray-300 dark:peer-checked:bg-green-950/40">
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        <details className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <summary className="cursor-pointer text-sm font-semibold text-gray-800 dark:text-white">
+            Maydon va qo&apos;shimcha ma&apos;lumotlar
+          </summary>
+          <div className="mt-4 space-y-3">
+            {(isApartment || isHouse || isOffice || category === "WAREHOUSE") && (
+              <div>
+                <label htmlFor="area" className={labelCls}>{isHouse ? "Uy maydoni (m²)" : "Umumiy maydon (m²)"}</label>
+                <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
+                {getFieldError("area") && <p className={errorCls}>{getFieldError("area")}</p>}
+              </div>
+            )}
+            {isApartment && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="livingArea" className={labelCls}>Yashash maydoni (m²)</label>
+                    <input id="livingArea" name="livingArea" type="number" min={1} step="any" value={livingArea} onChange={(event) => setLivingArea(event.target.value)} className={inputCls} />
+                  </div>
+                  <div>
+                    <label htmlFor="bathroom" className={labelCls}>Sanuzel soni</label>
+                    <input id="bathroom" name="bathroom" type="number" min={0} max={100} step={1} value={bathroom} onChange={(event) => setBathroom(event.target.value)} className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="renovation" className={labelCls}>Ta&apos;mir holati</label>
+                  <input id="renovation" name="renovation" maxLength={80} value={renovation} onChange={(event) => setRenovation(event.target.value)} placeholder="Masalan: Yevroremont, o'rtacha, ta'mirsiz" className={inputCls} />
+                </div>
+              </>
+            )}
+            {isLand && (
+              <>
+                <div>
+                  <label htmlFor="landArea" className={labelCls}>Yer maydoni (sotix)</label>
+                  <input id="landArea" name="landArea" type="number" min={0.01} step="any" value={landArea} onChange={(event) => setLandArea(event.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="purpose" className={labelCls}>Yer maqsadi</label>
+                  <input id="purpose" name="purpose" maxLength={100} value={purpose} onChange={(event) => setPurpose(event.target.value)} placeholder="Masalan: uy-joy qurilishi" className={inputCls} />
+                </div>
+              </>
+            )}
+            {isHouse && (
               <div>
                 <label htmlFor="landArea" className={labelCls}>Yer maydoni (sotix)</label>
                 <input id="landArea" name="landArea" type="number" min={0.01} step="any" value={landArea} onChange={(event) => setLandArea(event.target.value)} className={inputCls} />
               </div>
-              <div>
-                <label htmlFor="purpose" className={labelCls}>Yer maqsadi</label>
-                <input id="purpose" name="purpose" maxLength={100} value={purpose} onChange={(event) => setPurpose(event.target.value)} placeholder="Masalan: uy-joy qurilishi" className={inputCls} />
-              </div>
-            </>
-          )}
-
-          {isHouse && (
-            <div>
-              <label htmlFor="landArea" className={labelCls}>Yer maydoni (sotix)</label>
-              <input id="landArea" name="landArea" type="number" min={0.01} step="any" value={landArea} onChange={(event) => setLandArea(event.target.value)} className={inputCls} />
-            </div>
-          )}
-
-          {isOffice && (
-            <>
-              <div>
-                <label htmlFor="area" className={labelCls}>Maydon (m²)</label>
-                <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
+            )}
+            {isOffice && (
+              <>
                 <div>
                   <label htmlFor="buildingType" className={labelCls}>Bino turi</label>
                   <input id="buildingType" name="buildingType" maxLength={100} value={buildingType} onChange={(event) => setBuildingType(event.target.value)} placeholder="Biznes markaz, alohida bino..." className={inputCls} />
@@ -589,105 +742,40 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
                   <label htmlFor="electricityPower" className={labelCls}>Elektr quvvati (kW)</label>
                   <input id="electricityPower" name="electricityPower" type="number" min={1} step={1} value={electricityPower} onChange={(event) => setElectricityPower(event.target.value)} className={inputCls} />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
-                  <input type="checkbox" name="parking" checked={parking} onChange={(event) => setParking(event.target.checked)} className="h-4 w-4 accent-green-700" />
-                  Avtoturargoh
-                </label>
                 <div>
                   <label htmlFor="entrance" className={labelCls}>Kirish joyi</label>
                   <input id="entrance" name="entrance" maxLength={100} value={entrance} onChange={(event) => setEntrance(event.target.value)} placeholder="Alohida kirish..." className={inputCls} />
                 </div>
+              </>
+            )}
+            {isRental && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="deposit" className={labelCls}>Depozit summasi</label>
+                  <input id="deposit" name="deposit" type="number" min={0} step="any" value={deposit} onChange={(event) => setDeposit(event.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label htmlFor="utilitiesCondition" className={labelCls}>Kommunal to&apos;lovlar sharti</label>
+                  <input id="utilitiesCondition" name="utilitiesCondition" maxLength={200} value={utilitiesCondition} onChange={(event) => setUtilitiesCondition(event.target.value)} placeholder="Narx ichida / alohida..." className={inputCls} />
+                </div>
               </div>
-            </>
-          )}
-
-          {category === "WAREHOUSE" && (
-            <div>
-              <label htmlFor="area" className={labelCls}>Maydon (m²)</label>
-              <input id="area" name="area" type="number" min={1} step="any" value={area} onChange={(event) => setArea(event.target.value)} className={inputCls} />
-            </div>
-          )}
-
-          {isRental && (
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label htmlFor="deposit" className={labelCls}>Depozit summasi</label>
-                <input id="deposit" name="deposit" type="number" min={0} step="any" value={deposit} onChange={(event) => setDeposit(event.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="utilitiesCondition" className={labelCls}>Kommunal to&apos;lovlar sharti</label>
-                <input id="utilitiesCondition" name="utilitiesCondition" maxLength={200} value={utilitiesCondition} onChange={(event) => setUtilitiesCondition(event.target.value)} placeholder="Narx ichida / alohida..." className={inputCls} />
-              </div>
-            </div>
-          )}
-          {category === "WAREHOUSE" && (
-            <div>
-            <label htmlFor="renovation" className={labelCls}>Ta&apos;mir holati</label>
-            <input
-              id="renovation"
-              name="renovation"
-              type="text"
-              maxLength={80}
-              value={renovation}
-              onChange={(event) => setRenovation(event.target.value)}
-              placeholder="Masalan: Yevroremont, o'rtacha, ta'mirsiz"
-              className={inputCls}
-            />
+            )}
           </div>
-          )}
-        </div>
-      </section>
+        </details>
 
-      <section className={`${step === 0 ? "block" : "hidden"} space-y-4`}>
-        <ListingImageUploader
-          images={images}
-          onChange={setImages}
-          onBusyChange={setUploading}
-          onError={(message) => setFieldErrors((current) => ({ ...current, images: message }))}
-          draftId={draftId}
-          disabled={!storageReady}
-        />
-        {getFieldError("images") && <p className={errorCls}>{getFieldError("images")}</p>}
         {images.length > 0 && (
           <div className="rounded-2xl border border-green-100 bg-green-50/70 p-4">
             <button
               type="button"
-              onClick={smartFill}
-              disabled={isSmartFilling || uploading}
-              className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800 disabled:opacity-50"
+              onClick={improveListingCopy}
+              disabled={isImprovingCopy || title.trim().length < 5 || description.trim().length < 20}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSmartFilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {isSmartFilling ? "Rasm tahlil qilinmoqda..." : "AI orqali to'ldirish"}
+              {isImprovingCopy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {isImprovingCopy ? "AI tahrir qilmoqda..." : "AI bilan yaxshilash"}
             </button>
-            <p className="mt-2 text-xs text-green-900">
-              AI rasmga qarab sarlavha, tavsif va xonalar sonini taxmin qiladi. Natijani tekshirib chiqing.
-            </p>
           </div>
         )}
-
-        <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            <label htmlFor="description" className={labelCls}>Tavsif *</label>
-            <span className="text-xs text-gray-500">Keyingi qadamda e&apos;lonni ko&apos;rib chiqing va AI bilan tahrirlang</span>
-          </div>
-          <textarea
-            id="description"
-            name="description"
-            required
-            minLength={20}
-            rows={5}
-            maxLength={2000}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="E'lon haqida batafsil..."
-            className={`${inputCls} h-auto resize-none py-3`}
-            aria-invalid={Boolean(getFieldError("description"))}
-          />
-          {getFieldError("description") && <p className={errorCls}>{getFieldError("description")}</p>}
-          {aiError && <p role="alert" className={errorCls}>{aiError}</p>}
-        </div>
       </section>
 
       <section className={`${step === 1 ? "block" : "hidden"} space-y-4`}>
@@ -775,30 +863,6 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
           <input type="hidden" name="latitude" value={coordinates?.lat ?? ""} />
           <input type="hidden" name="longitude" value={coordinates?.lng ?? ""} />
 
-          {(isHouse || isLand) && (
-            <fieldset>
-              <legend className={labelCls}>Kommunal xizmatlar</legend>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {[
-                { name: "hasGas", label: "Gaz bor", checked: hasGas, setChecked: setHasGas },
-                { name: "hasWater", label: "Suv bor", checked: hasWater, setChecked: setHasWater },
-                { name: "hasElectricity", label: "Elektr bor", checked: hasElectricity, setChecked: setHasElectricity },
-                { name: "hasSewage", label: "Kanalizatsiya bor", checked: hasSewage, setChecked: setHasSewage },
-              ].map((item) => (
-                <label key={item.name} className="flex items-center gap-2 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    name={item.name}
-                    checked={item.checked}
-                    onChange={(event) => item.setChecked(event.target.checked)}
-                    className="h-4 w-4 accent-green-700"
-                  />
-                  {item.label}
-                </label>
-              ))}
-              </div>
-            </fieldset>
-          )}
         </div>
       </div>
 
@@ -866,36 +930,38 @@ export default function CreateListingForm({ storageReady }: { storageReady: bool
 
       {draftError && <p role="status" className="text-xs text-amber-700">{draftError}</p>}
 
-      <div className="flex gap-2">
-        {step > 0 && (
-          <button
-            type="button"
-            onClick={() => setStep((current) => Math.max(0, current - 1))}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            <ChevronLeft className="h-4 w-4" /> Ortga
-          </button>
-        )}
-        {step < steps.length - 1 ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (validateStep(step)) setStep((current) => current + 1)
-            }}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-700 font-bold text-white hover:bg-green-800"
-          >
-            Davom etish <ChevronRight className="h-4 w-4" />
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={isPending || submitting || uploading || !storageReady}
-            className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-green-700 to-green-800 text-base font-extrabold text-white shadow-lg shadow-green-400/30 disabled:opacity-50"
-          >
-            {isPending || submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-            E&apos;lonni joylash
-          </button>
-        )}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 backdrop-blur lg:static lg:border-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-xl gap-2 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] lg:max-w-none lg:py-0">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={() => setStep((current) => Math.max(0, current - 1))}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <ChevronLeft className="h-4 w-4" /> Ortga
+            </button>
+          )}
+          {step < steps.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (validateStep(step)) setStep((current) => current + 1)
+              }}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-700 font-bold text-white transition hover:bg-green-800"
+            >
+              Keyingisi <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isPending || submitting || uploading || !storageReady}
+              className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-green-700 to-green-800 text-base font-extrabold text-white shadow-lg shadow-green-400/30 disabled:opacity-50"
+            >
+              {isPending || submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
+              E&apos;lonni joylash
+            </button>
+          )}
+        </div>
       </div>
       <p className="text-center text-[11px] text-gray-400">
         Qoralama avtomatik saqlanadi. E&apos;lon moderatsiyadan so&apos;ng saytda ko&apos;rinadi.

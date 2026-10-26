@@ -9,20 +9,27 @@ export default function RemoveFavoriteButton({ listingId }: { listingId: string 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
 
-  const remove = async () => {
+  const remove = async (e: React.MouseEvent) => {
+    // 1. E'lon sahifasiga o'tib ketmasligi uchun Link'ni to'xtatamiz
+    e.preventDefault()
+    e.stopPropagation()
+
     if (busy) return
     setBusy(true)
     setError("")
+
     try {
-      const response = await fetch("/api/favorites", {
+      // 2. listingId ni URL orqali yuboramiz (API aynan shuni kutyapti)
+      const response = await fetch(`/api/favorites?listingId=${listingId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ listingId }),
       })
+
       if (!response.ok) {
         setError("Sevimlilardan olib tashlab bo'lmadi.")
         return
       }
+      
+      // 3. Sahifani yangilaymiz, o'chirilgan e'lon darhol yo'qoladi
       router.refresh()
     } catch {
       setError("Aloqa xatosi. Qayta urinib ko'ring.")
