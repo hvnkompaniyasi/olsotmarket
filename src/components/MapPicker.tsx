@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import Map, { Marker, type MapLayerMouseEvent, type MapRef } from "react-map-gl/maplibre"
+import { MAPLIBRE_WORKER_URL } from "@/lib/maplibre-worker"
 
 interface MapPickerProps {
   value: { lat: number; lng: number } | null
@@ -9,71 +11,38 @@ interface MapPickerProps {
 }
 
 export default function MapPicker({ value, onChange, center }: MapPickerProps) {
-  const divRef = useRef<HTMLDivElement>(null)
-  const LRef = useRef<any>(null)
-  const mapRef = useRef<any>(null)
-  const markerRef = useRef<any>(null)
+  const mapRef = useRef<MapRef>(null)
 
   useEffect(() => {
-    let map: any
-    let cancelled = false
-    ;(async () => {
-      const L = (await import("leaflet")).default
-      if (cancelled || !divRef.current) return
-      LRef.current = L
-      map = L.map(divRef.current, { zoomControl: true }).setView(center || [41.3111, 69.2797], 6)
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap",
-        maxZoom: 18,
-      }).addTo(map)
-      map.on("click", (e: any) => {
-        onChange({ lat: e.latlng.lat, lng: e.latlng.lng })
-      })
-      mapRef.current = map
-    })()
-    return () => {
-      cancelled = true
-      if (map) map.remove()
+    if (center && !value) {
+      mapRef.current?.flyTo({ center: [center[1], center[0]], zoom: 10 })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [center, value])
 
-  // Markerni yangilash
-  useEffect(() => {
-    const L = LRef.current
-    const map = mapRef.current
-    if (!L || !map) return
-    const pinIcon = L.divIcon({
-      className: "",
-      html: '<div style="width:26px;height:26px;background:linear-gradient(135deg,#fb923c,#0a7c4e);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(0,0,0,.35)"></div>',
-      iconSize: [26, 26],
-      iconAnchor: [13, 26],
-    })
-    if (value) {
-      if (markerRef.current) {
-        markerRef.current.setLatLng([value.lat, value.lng])
-      } else {
-        markerRef.current = L.marker([value.lat, value.lng], { icon: pinIcon }).addTo(map)
-      }
-      map.setView([value.lat, value.lng], Math.max(map.getZoom(), 14))
-    } else if (markerRef.current) {
-      map.removeLayer(markerRef.current)
-      markerRef.current = null
-    }
-  }, [value])
-
-  // Region tanlanganda xaritani siljitish
-  useEffect(() => {
-    const map = mapRef.current
-    if (map && center && !value) map.setView(center, 10)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center])
+  const handleMapClick = (event: MapLayerMouseEvent) => {
+    onChange({ lat: event.lngLat.lat, lng: event.lngLat.lng })
+  }
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border-2 border-white/70 dark:border-zinc-800 shadow-lg h-64 sm:h-80">
-      <div ref={divRef} className="w-full h-full" />
-      <div className="absolute top-2 left-2 z-[500] pointer-events-none">
-        <div className="inline-block px-3 py-1.5 bg-white/95 dark:bg-zinc-900/95 rounded-full text-[11px] font-semibold text-gray-700 dark:text-gray-200 shadow-md">
+    <div className="relative h-64 overflow-hidden rounded-2xl border-2 border-white/70 shadow-lg sm:h-80">
+      <Map
+        ref={mapRef}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        workerUrl={MAPLIBRE_WORKER_URL}
+        initialViewState={{
+          longitude: value?.lng ?? center?.[1] ?? 69.2401,
+          latitude: value?.lat ?? center?.[0] ?? 41.2995,
+          zoom: value ? 14 : 6,
+        }}
+        onClick={handleMapClick}
+        style={{ width: "100%", height: "100%" }}
+      >
+        {value && (
+          <Marker longitude={value.lng} latitude={value.lat} anchor="bottom" color="#0a7c4e" />
+        )}
+      </Map>
+      <div className="pointer-events-none absolute left-2 top-2 z-10">
+        <div className="inline-block rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-gray-700 shadow-md">
           📍 Xaritaga bosib aniq joylashuvni belgilang
         </div>
       </div>

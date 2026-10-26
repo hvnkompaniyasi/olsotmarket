@@ -1,6 +1,6 @@
-const CACHE_NAME = "senest-v3"
+const CACHE_NAME = "senest-v4"
 const OFFLINE_URL = "/offline"
-const PRECACHE = ["/", "/offline", "/manifest.json", "/icons/icon-192.svg", "/icons/icon-512.svg"]
+const PRECACHE = ["/", "/offline", "/manifest.json", "/logo.svg"]
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)))
@@ -64,8 +64,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/icons/icon-192.svg",
-      badge: "/icons/icon-192.svg",
+      icon: "/logo.svg",
+      badge: "/logo.svg",
       data: { link: data.link },
     })
   )

@@ -1,75 +1,75 @@
-"use client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import Link from "next/link";
-import { Search, MapPin, Plus, ShieldCheck } from "lucide-react";
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Search, ShieldCheck, SlidersHorizontal } from "lucide-react"
+import SearchFilter from "@/components/SearchFilter"
 
 export default function Hero() {
-  const router = useRouter();
-  const [q, setQ] = useState("");
+  const router = useRouter()
+  const [query, setQuery] = useState("")
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   return (
-    <section className="relative overflow-hidden">
-      {/* Gradient blob'lar */}
-      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-emerald-300/30 blur-3xl pointer-events-none" />
-      <div className="absolute top-32 -left-24 w-64 h-64 rounded-full bg-teal-300/25 blur-3xl pointer-events-none" />
-
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-8 pb-6">
-        <div className="glass-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-[#0A7C4E] dark:text-emerald-400 mb-4">
+    <section className="pb-4">
+      <div className="pt-4 sm:pt-8">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-[11px] font-semibold text-emerald-800">
           <ShieldCheck className="h-3.5 w-3.5" />
-          O'zbekiston bo'ylab ishonchli e'lonlar
+          Ishonchli va kafolatlangan bozor
         </div>
-
-        <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-[1.1]">
-          Orzuingizdagi uy
-          <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0A7C4E] to-emerald-500">
-            bir masofada
-          </span>
+        <h1 className="mt-2 max-w-xl text-[26px] font-bold leading-8 tracking-tight text-gray-950 sm:text-4xl sm:leading-tight">
+          Orzuingizdagi uy bir masofada
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 max-w-md">
-          Minglab tasdiqlangan e'lonlar — xarita, filtr va bir toxtda qidiruv bilan
+        <p className="mt-1 text-sm text-slate-600">
+          Minglab tasdiqlangan e&apos;lonlar
         </p>
 
-        {/* Glass qidiruv panel */}
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            router.push(q.trim() ? `/listings?q=${encodeURIComponent(q.trim())}` : "/listings");
+          onSubmit={(event) => {
+            event.preventDefault()
+            const search = query.trim()
+            router.push(search ? `/listings?q=${encodeURIComponent(search)}` : "/listings")
           }}
-          className="glass mt-5 flex items-center gap-2 p-2 rounded-2xl shadow-[0_8px_30px_rgba(10,124,78,0.10)]"
+          className="mt-5 flex items-center gap-2.5"
         >
-          <Search className="h-4 w-4 text-gray-400 ml-2 flex-shrink-0" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Hudud, manzil yoki sarlavha..."
-            className="flex-1 h-10 bg-transparent text-sm outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
-          />
+          <label className="flex h-13 min-w-0 flex-1 items-center gap-3 rounded-full bg-white px-4 shadow-[0_4px_16px_-2px_rgba(17,24,39,0.05),0_2px_6px_-1px_rgba(17,24,39,0.03)] transition focus-within:ring-2 focus-within:ring-emerald-600/20">
+            <Search className="h-5 w-5 shrink-0 text-emerald-800" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Hudud, manzil yoki sarlavha..."
+              aria-label="E'lon qidirish"
+              className="h-full min-w-0 flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-slate-500"
+            />
+            <button
+              type="submit"
+              aria-label="Qidirish"
+              className="sr-only"
+            >
+              Qidirish
+            </button>
+          </label>
           <button
-            type="submit"
-            className="h-10 px-5 bg-[#0A7C4E] hover:bg-[#086339] text-white rounded-xl text-sm font-bold transition-colors"
+            type="button"
+            onClick={() => setFiltersOpen((open) => !open)}
+            aria-label={filtersOpen ? "Filtrlarni yopish" : "Filtrlarni ochish"}
+            aria-expanded={filtersOpen}
+            className={`flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-800 shadow-[0_4px_16px_-2px_rgba(17,24,39,0.05),0_2px_6px_-1px_rgba(17,24,39,0.03)] transition active:scale-95 ${
+              filtersOpen ? "ring-2 ring-emerald-700/20" : ""
+            }`}
           >
-            Qidirish
+            <SlidersHorizontal className="h-5 w-5" />
           </button>
         </form>
-
-        {/* Tez tugmalar */}
-        <div className="flex gap-2 mt-3">
-          <Link
-            href="/map"
-            className="glass flex-1 h-11 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center justify-center gap-1.5"
-          >
-            <MapPin className="h-4 w-4 text-[#0A7C4E]" /> Xaritada ko'rish
-          </Link>
-          <Link
-            href="/listings/create"
-            className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#0A7C4E] to-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-[0_8px_24px_rgba(10,124,78,0.35)]"
-          >
-            <Plus className="h-4 w-4" /> E'lon qo'shish — bepul
-          </Link>
-        </div>
       </div>
+
+      {filtersOpen && (
+        <div className="pt-3">
+          <SearchFilter />
+        </div>
+      )}
+
     </section>
-  );
+  )
 }

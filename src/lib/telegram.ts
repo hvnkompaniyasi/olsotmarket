@@ -1,8 +1,12 @@
+import { DEAL_TYPES, PROPERTY_CATEGORIES } from "@/lib/locations";
+
 type ListingTelegramDetails = {
   id: string;
   slug: string | null;
   title: string;
   description: string;
+  type: string;
+  category: string;
   price: number;
   currency: string;
   region: string;
@@ -13,9 +17,22 @@ type ListingTelegramDetails = {
   floor: number | null;
   totalFloors: number | null;
   renovation: string | null;
+  livingArea: number | null;
+  landArea: number | null;
+  purpose: string | null;
+  buildingType: string | null;
+  electricityPower: number | null;
+  parking: boolean | null;
+  entrance: string | null;
+  bathroom: number | null;
+  elevator: boolean | null;
+  furniture: boolean | null;
+  deposit: number | null;
+  utilitiesCondition: string | null;
   hasGas: boolean;
   hasWater: boolean;
   hasElectricity: boolean;
+  hasSewage: boolean | null;
   images: string[];
   latitude: number | null;
   longitude: number | null;
@@ -50,6 +67,9 @@ function buildListingMessage(listing: ListingTelegramDetails): string {
   const description = listing.description.trim();
   const shortenedDescription =
     description.length > 200 ? `${description.slice(0, 197).trimEnd()}...` : description;
+  const dealName = DEAL_TYPES.find((deal) => deal.id === listing.type)?.name ?? listing.type;
+  const categoryName =
+    PROPERTY_CATEGORIES.find((category) => category.id === listing.category)?.name ?? listing.category;
   const roomsAreaFloor = [
     listing.rooms === null ? null : `<b>Xonalar:</b> ${listing.rooms} xona`,
     listing.area === null ? null : `<b>Maydon:</b> ${listing.area} m²`,
@@ -57,9 +77,27 @@ function buildListingMessage(listing: ListingTelegramDetails): string {
       ? null
       : `<b>Qavat:</b> ${listing.floor}/${listing.totalFloors ?? '?'}`,
   ].filter((value): value is string => value !== null);
+  const additionalDetails = [
+    listing.livingArea === null ? null : `<b>Yashash maydoni:</b> ${listing.livingArea} m²`,
+    listing.landArea === null ? null : `<b>Yer maydoni:</b> ${listing.landArea} sotix`,
+    listing.bathroom === null ? null : `<b>Sanuzel:</b> ${listing.bathroom} ta`,
+    listing.purpose ? `<b>Maqsadi:</b> ${escapeHtml(listing.purpose)}` : null,
+    listing.buildingType ? `<b>Bino turi:</b> ${escapeHtml(listing.buildingType)}` : null,
+    listing.electricityPower === null ? null : `<b>Elektr quvvati:</b> ${listing.electricityPower} kW`,
+    listing.entrance ? `<b>Kirish joyi:</b> ${escapeHtml(listing.entrance)}` : null,
+    listing.parking === null ? null : `<b>Avtoturargoh:</b> ${listing.parking ? "Bor" : "Yo'q"}`,
+    listing.elevator === null ? null : `<b>Lift:</b> ${listing.elevator ? "Bor" : "Yo'q"}`,
+    listing.furniture === null ? null : `<b>Mebel:</b> ${listing.furniture ? "Bor" : "Yo'q"}`,
+    listing.deposit === null ? null : `<b>Depozit:</b> ${formatPrice(listing.deposit, listing.currency)}`,
+    listing.utilitiesCondition
+      ? `<b>Kommunal to'lovlar sharti:</b> ${escapeHtml(listing.utilitiesCondition)}`
+      : null,
+  ].filter((value): value is string => value !== null);
 
   return [
     `🏠 <b>Sarlavha:</b> ${escapeHtml(listing.title)}`,
+    `<b>Bitim:</b> ${escapeHtml(dealName)}`,
+    `<b>Kategoriya:</b> ${escapeHtml(categoryName)}`,
     `<b>Narx:</b> ${formatPrice(listing.price, listing.currency)}`,
     `<b>Hudud:</b> ${escapeHtml(listing.region)}, ${escapeHtml(listing.district)}`,
     `<b>Manzil:</b> ${escapeHtml(listing.address)}`,
@@ -67,9 +105,12 @@ function buildListingMessage(listing: ListingTelegramDetails): string {
     ...(listing.renovation
       ? [`<b>Ta'mir:</b> ${escapeHtml(listing.renovation)}`]
       : []),
+    ...additionalDetails,
     `<b>Kommunal:</b> Gaz: ${listing.hasGas ? 'Ha' : "Yo'q"} | Suv: ${
       listing.hasWater ? 'Ha' : "Yo'q"
-    } | Svet: ${listing.hasElectricity ? 'Ha' : "Yo'q"}`,
+    } | Svet: ${listing.hasElectricity ? 'Ha' : "Yo'q"}${
+      listing.hasSewage === null ? "" : ` | Kanalizatsiya: ${listing.hasSewage ? "Ha" : "Yo'q"}`
+    }`,
     ...(shortenedDescription
       ? [`<b>Tavsif:</b> ${escapeHtml(shortenedDescription)}`]
       : []),

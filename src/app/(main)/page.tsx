@@ -3,9 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { DEAL_TYPES, PROPERTY_CATEGORIES } from "@/lib/locations"
 import Navbar from "@/components/Navbar"
 import Hero from "@/components/Hero"
-import SearchFilter from "@/components/SearchFilter"
 import Categories from "@/components/Categories"
-import FeaturedListings from "@/components/FeaturedListings"
 import HomeListings from "@/components/HomeListings"
 import Advantages from "@/components/Advantages"
 import Footer from "@/components/Footer"
@@ -51,6 +49,9 @@ const cardSelect = {
   area: true,
   type: true,
   isPremium: true,
+  category: true,
+  floor: true,
+  totalFloors: true,
   createdAt: true,
 } as const
 
@@ -94,13 +95,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const hasFilters = queryString.length > 0
 
   return (
-    <div className="min-h-screen bg-[#F7FBF8] dark:bg-zinc-950">
+    <div className="min-h-screen bg-[#f8f9fc]">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-3 sm:px-6">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6">
         <Hero />
-        <SearchFilter />
-        <Categories />
-        {!hasFilters && <FeaturedListings />}
+        <Categories selectedCategory={category} />
         <HomeListings
           listings={listings}
           total={total}

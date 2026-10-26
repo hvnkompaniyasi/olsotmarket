@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { Home, Phone, Mail, MapPin } from "lucide-react"
+import { Phone, Mail, MapPin } from "lucide-react"
+import Logo from "@/components/ui/Logo"
 
 const LINKS = [
   { href: "/listings?deal=SALE", label: "Sotib olish" },
@@ -12,15 +13,12 @@ const LINKS = [
 export default function Footer() {
   return (
     <footer className="bg-white/80 dark:bg-zinc-900/80 border-t border-green-100/60 dark:border-zinc-800">
-      <div className="max-w-6xl mx-auto px-6 py-10 pb-28 lg:pb-12 text-center">
-        <div className="flex items-center justify-center gap-2.5 mb-2">
-          <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#16a34a] to-[#15803d] flex items-center justify-center shadow-md shadow-green-400/30">
-            <Home className="h-4.5 w-4.5 h-5 w-5 text-white" />
-          </span>
-          <span className="text-lg font-extrabold text-gray-900 dark:text-white">Olsot Market</span>
-        </div>
+      <div className="max-w-6xl mx-auto px-6 py-10 pb-8 text-center lg:pb-12">
+        <Link href="/" aria-label="Olsot Market — bosh sahifa" className="mb-2 inline-flex justify-center">
+          <Logo size="sm" />
+        </Link>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
-          O'zbekistondagi ishonchli ko'chmas mulk platformasi
+          O&apos;zbekistondagi ishonchli ko&apos;chmas mulk platformasi
         </p>
 
         <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 mb-7">

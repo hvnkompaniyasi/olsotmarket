@@ -2,45 +2,61 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Search, Plus, MapPin, User } from "lucide-react"
+import { House, Map, Plus, Search, UserRound } from "lucide-react"
+
+const items = [
+  { href: "/", icon: House, label: "Bosh" },
+  { href: "/listings", icon: Search, label: "Qidiruv" },
+  { href: "/listings/create", icon: Plus, label: "E'lon", center: true },
+  { href: "/map", icon: Map, label: "Xarita" },
+  { href: "/profile", icon: UserRound, label: "Profil" },
+]
 
 export default function MobileNav() {
   const pathname = usePathname()
 
-
-  const items = [
-    { href: "/", icon: Home, label: "Bosh" },
-    { href: "/listings", icon: Search, label: "Qidiruv" },
-    { href: "/listings/create", icon: Plus, label: "", center: true },
-    { href: "/map", icon: MapPin, label: "Xarita" },
-    { href: "/profile", icon: User, label: "Profil" },
-  ]
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-zinc-800">
-      <div className="flex items-end justify-around px-2 pb-2 pt-1">
+    <nav
+      aria-label="Mobil navigatsiya"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-100 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(17,24,39,0.05)] backdrop-blur-xl lg:hidden"
+    >
+      <div className="relative mx-auto flex h-16 max-w-lg items-center justify-around px-1">
         {items.map((item) => {
           const Icon = item.icon
-          const active = pathname === item.href
+          const active =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
+
           if (item.center) {
             return (
-              <Link key={item.href} href={item.href} aria-label="E'lon qo'shish" className="-mt-6">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-xl shadow-emerald-400/40 border-4 border-white dark:border-zinc-900">
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label="E'lon qo'shish"
+                className="relative -top-3 flex min-w-[56px] flex-col items-center"
+              >
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-800 text-white shadow-[0_8px_18px_-2px_rgba(0,106,57,0.38)] transition active:scale-95">
+                  <Icon className="h-7 w-7" />
+                </span>
+                <span className="mt-1 text-[11px] font-medium text-gray-700">
+                  {item.label}
+                </span>
               </Link>
             )
           }
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
-                active ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
+              aria-current={active ? "page" : undefined}
+              className={`flex h-14 min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-xl transition-colors ${
+                active ? "text-emerald-800" : "text-slate-600 hover:text-emerald-800"
               }`}
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <Icon className="h-[22px] w-[22px]" />
+              <span className="text-[11px] font-medium leading-4">{item.label}</span>
             </Link>
           )
         })}

@@ -13,6 +13,9 @@ export interface HomeListing {
   rooms: number | null
   area: number | null
   type: string
+  category: string
+  floor: number | null
+  totalFloors: number | null
   isPremium: boolean
   createdAt: Date
 }
@@ -59,26 +62,26 @@ export default function HomeListings({
   const allHref = queryString ? `/listings?${queryString}` : "/listings"
 
   return (
-    <section className="pb-6">
+    <section className="pb-6 pt-5">
       <div className="flex items-end justify-between mb-3">
         <div>
-          <h2 className="text-base font-extrabold text-gray-900 dark:text-white">
-            {hasFilters ? "Qidiruv natijalari" : "Yangi e'lonlar"}
+          <h2 className="text-lg font-semibold tracking-tight text-gray-950">
+            {hasFilters ? "Qidiruv natijalari" : "Tavsiya etilgan e'lonlar"}
           </h2>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-            {total} ta {hasFilters ? "mos" : "faol"} e&apos;lon
+          <p className="mt-0.5 text-xs font-medium text-slate-600">
+            {hasFilters ? `${total} ta mos e'lon` : "Yangi va tekshirilgan mulklardan tanlov"}
           </p>
         </div>
         <Link
           href={allHref}
-          className="text-xs font-bold text-[#0A7C4E] dark:text-emerald-400 flex items-center gap-1"
+          className="flex items-center gap-1 text-sm font-medium text-emerald-800"
         >
           Barchasi <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {listings.map((l) => (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {listings.map((l, index) => (
           <ListingCard
             key={l.id}
             id={l.id}
@@ -89,7 +92,11 @@ export default function HomeListings({
             area={l.area || 0}
             image={l.images?.[0] || ""}
             type={DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type}
+            category={l.category}
+            floor={l.floor}
+            totalFloors={l.totalFloors}
             isPremium={l.isPremium}
+            priority={index === 0}
             createdAt={l.createdAt.toISOString()}
             isFavorited={false}
           />

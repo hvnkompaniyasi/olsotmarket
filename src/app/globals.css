@@ -1,4 +1,4 @@
-@import "leaflet/dist/leaflet.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -183,11 +183,6 @@ img { transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
 /* Card hover yaxshilash */
 .group { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
-
-/* ============ LEAFLET MARKER FIX ============ */
-.leaflet-default-icon-path {
-  background-image: url(https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png);
-}
 
 /* ============ USER LOCATION DOT ============ */
 .user-dot {

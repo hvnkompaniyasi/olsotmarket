@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import {
-  MapPin, Ruler, Flame, Droplets, Zap, User, Crown, BedDouble, Building2,
+  MapPin, Ruler, User, Crown, BedDouble, Building2,
 } from "lucide-react";
 import { prisma } from "@/lib/auth";
 import { authOptions } from "@/lib/auth-options";
@@ -77,6 +77,29 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
 
   const dealName = DEAL_TYPES.find((d) => d.id === listing.type)?.name || listing.type;
   const priceStr = formatPrice(listing.price, dealName, listing.currency);
+  const propertyDetails = [
+    { label: "Xonalar", value: listing.rooms !== null ? `${listing.rooms} ta` : null },
+    { label: "Umumiy maydon", value: listing.area !== null ? `${listing.area} m²` : null },
+    { label: "Yashash maydoni", value: listing.livingArea !== null ? `${listing.livingArea} m²` : null },
+    { label: "Yer maydoni", value: listing.landArea !== null ? `${listing.landArea} sotix` : null },
+    { label: "Qavat", value: listing.floor !== null ? `${listing.floor}${listing.totalFloors !== null ? ` / ${listing.totalFloors}` : ""}` : null },
+    { label: "Qavatlar soni", value: listing.totalFloors !== null ? `${listing.totalFloors}` : null },
+    { label: "Sanuzel", value: listing.bathroom !== null ? `${listing.bathroom} ta` : null },
+    { label: "Ta'mir", value: listing.renovation },
+    { label: "Maqsadi", value: listing.purpose },
+    { label: "Bino turi", value: listing.buildingType },
+    { label: "Elektr quvvati", value: listing.electricityPower !== null ? `${listing.electricityPower} kW` : null },
+    { label: "Kirish joyi", value: listing.entrance },
+    { label: "Depozit", value: listing.deposit !== null ? formatPrice(listing.deposit, "", listing.currency) : null },
+    { label: "Kommunal to'lovlar", value: listing.utilitiesCondition },
+    { label: "Gaz", value: listing.hasGas ? "Bor" : "Yo'q" },
+    { label: "Suv", value: listing.hasWater ? "Bor" : "Yo'q" },
+    { label: "Elektr", value: listing.hasElectricity ? "Bor" : "Yo'q" },
+    { label: "Kanalizatsiya", value: listing.hasSewage === null ? null : listing.hasSewage ? "Bor" : "Yo'q" },
+    { label: "Avtoturargoh", value: listing.parking === null ? null : listing.parking ? "Bor" : "Yo'q" },
+    { label: "Lift", value: listing.elevator === null ? null : listing.elevator ? "Bor" : "Yo'q" },
+    { label: "Mebel", value: listing.furniture === null ? null : listing.furniture ? "Bor" : "Yo'q" },
+  ].filter((detail): detail is { label: string; value: string } => detail.value !== null && detail.value !== undefined && detail.value !== "");
 
   return (
     <div className="min-h-screen bg-[#F7FBF8] dark:bg-zinc-950 pb-32 lg:pb-10">
@@ -144,7 +167,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
                   </div>
                 </div>
               )}
-              {(listing.floor ?? 0) > 0 && (
+              {listing.floor !== null && (
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                     <Building2 className="h-4 w-4 text-[#0A7C4E]" />
@@ -201,33 +224,33 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
             )}
 
             {/* ===== FACILITIES ===== */}
-            {(listing.renovation || listing.hasGas || listing.hasWater || listing.hasElectricity) && (
+            {(propertyDetails.length > 0 || (listing.latitude !== null && listing.longitude !== null)) && (
               <section className="glass rounded-2xl p-4 sm:p-5">
-                <h2 className="text-sm font-extrabold text-gray-900 dark:text-white mb-3">
-                  Qulayliklar
+                <h2 className="mb-3 text-sm font-extrabold text-gray-900 dark:text-white">
+                  Batafsil ma&apos;lumot
                 </h2>
-                <div className="flex flex-wrap gap-2">
-                  {listing.renovation && (
-                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200">
-                      Ta&apos;mir: {listing.renovation}
-                    </span>
-                  )}
-                  {listing.hasGas && (
-                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                      <Flame className="h-3.5 w-3.5 text-[#0A7C4E]" /> Gaz
-                    </span>
-                  )}
-                  {listing.hasWater && (
-                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                      <Droplets className="h-3.5 w-3.5 text-[#0A7C4E]" /> Suv
-                    </span>
-                  )}
-                  {listing.hasElectricity && (
-                    <span className="glass-pill px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                      <Zap className="h-3.5 w-3.5 text-[#0A7C4E]" /> Elektr
-                    </span>
-                  )}
-                </div>
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {propertyDetails.map((detail) => (
+                    <div key={detail.label} className="glass-pill rounded-xl px-3 py-2">
+                      <dt className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                        {detail.label}
+                      </dt>
+                      <dd className="mt-0.5 break-words text-xs font-bold text-gray-800 dark:text-gray-100">
+                        {detail.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {listing.latitude !== null && listing.longitude !== null && (
+                  <a
+                    href={`https://maps.google.com/?q=${listing.latitude},${listing.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#0A7C4E]"
+                  >
+                    <MapPin className="h-3.5 w-3.5" /> Xaritada ko&apos;rish
+                  </a>
+                )}
               </section>
             )}
           </div>

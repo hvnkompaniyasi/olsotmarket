@@ -21,15 +21,25 @@ export default function ChatNavLink() {
     return () => clearInterval(t)
   }, [session])
 
-  if (!session) return null
+  if (!session) {
+    return (
+      <Link
+        href="/login?callbackUrl=/messages"
+        aria-label="Xabarlar"
+        className="flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-800"
+      >
+        <MessageSquare className="h-5 w-5" />
+      </Link>
+    )
+  }
 
   return (
     <Link
       href="/messages"
       aria-label="Xabarlar"
-      className="relative w-9 h-9 rounded-xl bg-white/80 dark:bg-zinc-800 border border-white/70 dark:border-zinc-700 flex items-center justify-center text-gray-600 dark:text-gray-300 shadow-md hover:scale-110 transition-transform"
+      className="relative flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-800"
     >
-      <MessageSquare className="h-4 w-4" />
+      <MessageSquare className="h-5 w-5" />
       {unread > 0 && (
         <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
           {unread > 9 ? "9+" : unread}

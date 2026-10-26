@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>Qidiruv — Olsot Market</title>
+    <link rel="stylesheet" href="/design-system.css">
+    <style>
+      .search-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .search-top-copy { min-width: 0; }
+      .search-subtitle { margin: 3px 0 0; color: var(--ink-muted); font-size: 14px; }
+      .map-shortcut { display: inline-flex; min-height: 42px; flex: 0 0 auto; align-items: center; gap: 7px; padding: 0 14px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 13px; font-weight: 600; }
+      .search-controls { display: flex; gap: 10px; margin-top: 16px; }
+      .category-rail { margin: 14px -2px 0; }
+      .filter-rail { margin: 5px -2px 0; }
+      .results-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 9px 0 12px; }
+      .view-toggle { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface-low); }
+      .view-toggle button { display: grid; width: 32px; height: 30px; place-items: center; border: 0; border-radius: 7px; background: transparent; color: var(--outline); cursor: pointer; }
+      .view-toggle button.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgb(17 24 39 / 8%); }
+      .property-grid.list-view { grid-template-columns: minmax(0, 1fr); }
+      .property-grid.list-view .property-card { display: grid; grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.2fr); }
+      .property-grid.list-view .property-image { height: 100%; min-height: 160px; aspect-ratio: auto; }
+      .property-grid.list-view .property-details { display: flex; flex-direction: column; justify-content: center; }
+      @media (min-width: 760px) { .property-grid.list-view .property-card { grid-template-columns: 220px minmax(0, 1fr); } }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Olsot Market bosh sahifa">
+        <span class="brand-mark"><img src="/logo.svg" alt=""></span>
+        <span class="brand-copy"><span class="brand-name">Olsot Market</span><span class="brand-page">Qidiruv</span></span>
+      </a>
+      <div class="header-actions">
+        <a class="header-icon" href="/messages" aria-label="Xabarlar"><span class="material-symbols-outlined">chat_bubble</span><span class="unread-dot"></span></a>
+        <a class="profile-shortcut" href="/profile.html" aria-label="Profil"><span class="material-symbols-outlined">person</span></a>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <section class="search-top">
+        <div class="search-top-copy">
+          <h1 class="section-heading">Barcha e&apos;lonlar</h1>
+          <p class="search-subtitle">O&apos;zingizga mos uy-joyni toping</p>
+        </div>
+        <a class="map-shortcut" href="/map.html"><span class="material-symbols-outlined">location_on</span>Xaritada</a>
+      </section>
+
+      <form class="search-controls" id="searchForm">
+        <label class="search-field" style="flex: 1">
+          <span class="material-symbols-outlined">search</span>
+          <input id="searchInput" type="search" placeholder="Qidiruv: manzil, sarlavha..." aria-label="E'lonlarni qidirish">
+        </label>
+        <button class="icon-button" id="filterToggle" type="button" aria-label="Filtrlarni ochish" aria-expanded="false">
+          <span class="material-symbols-outlined">tune</span>
+        </button>
+      </form>
+
+      <div class="h-scroll category-rail" role="group" aria-label="Bitim turi bo'yicha filtrlash">
+        <button class="chip active" type="button" data-filter="all" aria-pressed="true">Barchasi</button>
+        <button class="chip" type="button" data-filter="Sotuv" aria-pressed="false">Sotuv</button>
+        <button class="chip" type="button" data-filter="Ijara" aria-pressed="false">Ijara</button>
+        <button class="chip" type="button" data-filter="Kunlik" aria-pressed="false">Kunlik</button>
+        <button class="chip" type="button" data-filter="Hovli uy" aria-pressed="false">Hovli uylar</button>
+        <button class="chip" type="button" data-filter="Tijoriy" aria-pressed="false">Tijoriy</button>
+      </div>
+
+      <div class="h-scroll filter-rail" id="extraFilters" hidden>
+        <label class="filter-pill"><span class="material-symbols-outlined" style="color: var(--primary)">location_on</span>
+          <select id="regionSelect" aria-label="Hududni tanlang" style="border: 0; outline: 0; background: transparent; color: inherit">
+            <option value="">Barcha hududlar</option>
+            <option>Toshkent</option><option>Andijon</option><option>Samarqand</option><option>Farg'ona</option>
+          </select>
+        </label>
+        <label class="filter-pill"><span class="material-symbols-outlined">swap_vert</span>
+          <select id="sortSelect" aria-label="Saralash" style="border: 0; outline: 0; background: transparent; color: inherit">
+            <option value="new">Eng yangilari</option><option value="low">Narx: arzonroq</option><option value="high">Narx: qimmatroq</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="results-toolbar">
+        <span class="result-count" id="resultCount" role="status">Topildi: 4 ta e&apos;lon</span>
+        <div class="view-toggle" aria-label="Natijalar ko'rinishi">
+          <button class="active" type="button" data-view="grid" aria-label="Setka ko'rinishi" aria-pressed="true"><span class="material-symbols-outlined">grid_view</span></button>
+          <button type="button" data-view="list" aria-label="Ro'yxat ko'rinishi" aria-pressed="false"><span class="material-symbols-outlined">view_agenda</span></button>
+        </div>
+      </div>
+
+      <section class="property-grid" id="propertyGrid" aria-label="Qidiruv natijalari">
+        <article class="property-card" data-type="Sotuv|Kvartira" data-price="85000" data-search="Toshkent City 3 xonali zamonaviy kvartira Shayxontohur Toshkent" data-region="Toshkent">
+          <div class="property-image">
+            <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=900&q=80" alt="Toshkentdagi zamonaviy kvartira mehmonxonasi" loading="lazy">
+            <span class="badge vip" style="position:absolute;top:10px;left:10px">VIP</span>
+            <button class="favorite-button" type="button" aria-label="Sevimlilarga qo'shish" aria-pressed="false" style="position:absolute;top:9px;right:9px"><span class="material-symbols-outlined">favorite</span></button>
+          </div>
+          <div class="property-details"><div class="property-price">85 000 $</div><h2 class="property-title">Toshkent City, 3 xonali zamonaviy kvartira</h2><div class="property-location"><span class="material-symbols-outlined">location_on</span><span>Shayxontohur tumani</span></div><div class="property-specs"><span>3 xona</span><span>86 m²</span></div></div>
+        </article>
+        <article class="property-card" data-type="Sotuv|Hovli uy" data-price="320000" data-search="Hovli uy basseynga ega Mirzo Ulug'bek Toshkent hovli" data-region="Toshkent">
+          <div class="property-image">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80" alt="Hovuzli zamonaviy hovli uy" loading="lazy">
+            <span class="badge" style="position:absolute;top:10px;left:10px">Sotuv</span>
+            <button class="favorite-button" type="button" aria-label="Sevimlilarga qo'shish" aria-pressed="false" style="position:absolute;top:9px;right:9px"><span class="material-symbols-outlined">favorite</span></button>
+          </div>
+          <div class="property-details"><div class="property-price">320 000 $</div><h2 class="property-title">Hovli uy, basseynga ega shinam</h2><div class="property-location"><span class="material-symbols-outlined">location_on</span><span>Mirzo Ulug&apos;bek tumani</span></div><div class="property-specs"><span>6 xona</span><span>4.5 sotix</span></div></div>
+        </article>
+        <article class="property-card" data-type="Sotuv|Kvartira" data-price="68000" data-search="Yunusobod Residence yangi bino 2 xonali Toshkent" data-region="Toshkent">
+          <div class="property-image">
+            <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=900&q=80" alt="Zamonaviy turar joy majmuasi" loading="lazy">
+            <span class="badge" style="position:absolute;top:10px;left:10px">Yangi bino</span>
+            <button class="favorite-button" type="button" aria-label="Sevimlilarga qo'shish" aria-pressed="false" style="position:absolute;top:9px;right:9px"><span class="material-symbols-outlined">favorite</span></button>
+          </div>
+          <div class="property-details"><div class="property-price">68 000 $</div><h2 class="property-title">Yunusobod Residence, zamonaviy xonadon</h2><div class="property-location"><span class="material-symbols-outlined">location_on</span><span>Yunusobod, 14-mavze</span></div><div class="property-specs"><span>2 xona</span><span>62 m²</span></div></div>
+        </article>
+        <article class="property-card" data-type="Ijara|Kvartira" data-price="650" data-search="Shinam studio kvartira Yakkasaroy ijara 1 xona" data-region="Toshkent">
+          <div class="property-image">
+            <img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=900&q=80" alt="Yorug' va shinam studio kvartira" loading="lazy">
+            <span class="badge" style="position:absolute;top:10px;left:10px;background:#577c6b">Ijara</span>
+            <button class="favorite-button" type="button" aria-label="Sevimlilarga qo'shish" aria-pressed="false" style="position:absolute;top:9px;right:9px"><span class="material-symbols-outlined">favorite</span></button>
+          </div>
+          <div class="property-details"><div class="property-price">650 $/oy</div><h2 class="property-title">Shinam studio kvartira, jihozlangan</h2><div class="property-location"><span class="material-symbols-outlined">location_on</span><span>Yakkasaroy tumani</span></div><div class="property-specs"><span>1 xona</span><span>44 m²</span></div></div>
+        </article>
+        <p class="empty-results" id="emptyResults">Qidiruvingizga mos e&apos;lon topilmadi.</p>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Pastki navigatsiya">
+      <a href="/"><span class="material-symbols-outlined">home</span><span>Bosh</span></a>
+      <a class="active" href="/search.html" aria-current="page"><span class="material-symbols-outlined">search</span><span>Qidiruv</span></a>
+      <a class="create" href="/listings/create" aria-label="E'lon qo'shish"><span class="create-circle"><span class="material-symbols-outlined">add</span></span><span>E&apos;lon</span></a>
+      <a href="/map.html"><span class="material-symbols-outlined">map</span><span>Xarita</span></a>
+      <a href="/profile.html"><span class="material-symbols-outlined">person</span><span>Profil</span></a>
+    </nav>
+
+    <script>
+      const grid = document.querySelector("#propertyGrid");
+      const cards = [...grid.querySelectorAll(".property-card")];
+      const searchInput = document.querySelector("#searchInput");
+      const resultCount = document.querySelector("#resultCount");
+      const emptyResults = document.querySelector("#emptyResults");
+      let selectedType = "all";
+
+      function updateResults() {
+        const query = searchInput.value.trim().toLocaleLowerCase("uz");
+        const region = document.querySelector("#regionSelect").value.toLocaleLowerCase("uz");
+        const sort = document.querySelector("#sortSelect").value;
+        let visible = 0;
+        const orderedCards = [...cards];
+        if (sort === "low") orderedCards.sort((a, b) => Number(a.dataset.price) - Number(b.dataset.price));
+        if (sort === "high") orderedCards.sort((a, b) => Number(b.dataset.price) - Number(a.dataset.price));
+        orderedCards.forEach((card) => grid.insertBefore(card, emptyResults));
+        cards.forEach((card) => {
+          const matchesType = selectedType === "all" || card.dataset.type.split("|").includes(selectedType);
+          const matchesQuery = !query || card.dataset.search.toLocaleLowerCase("uz").includes(query);
+          const matchesRegion = !region || card.dataset.region.toLocaleLowerCase("uz").includes(region);
+          const show = matchesType && matchesQuery && matchesRegion;
+          card.hidden = !show;
+          if (show) visible += 1;
+        });
+        resultCount.textContent = `Topildi: ${visible} ta e'lon`;
+        emptyResults.style.display = visible ? "none" : "block";
+      }
+
+      document.querySelector("#searchForm").addEventListener("submit", (event) => event.preventDefault());
+      searchInput.addEventListener("input", updateResults);
+      document.querySelector("#regionSelect").addEventListener("change", updateResults);
+      document.querySelector("#sortSelect").addEventListener("change", updateResults);
+      document.querySelector("#filterToggle").addEventListener("click", (event) => {
+        const filters = document.querySelector("#extraFilters");
+        filters.hidden = !filters.hidden;
+        event.currentTarget.setAttribute("aria-expanded", String(!filters.hidden));
+      });
+      document.querySelectorAll("[data-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedType = button.dataset.filter;
+          document.querySelectorAll("[data-filter]").forEach((item) => {
+            const active = item === button;
+            item.classList.toggle("active", active);
+            item.setAttribute("aria-pressed", String(active));
+          });
+          updateResults();
+        });
+      });
+      document.querySelectorAll(".favorite-button").forEach((button) => {
+        button.addEventListener("click", () => button.setAttribute("aria-pressed", String(button.getAttribute("aria-pressed") !== "true")));
+      });
+      document.querySelectorAll("[data-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const listView = button.dataset.view === "list";
+          grid.classList.toggle("list-view", listView);
+          document.querySelectorAll("[data-view]").forEach((item) => {
+            const active = item === button;
+            item.classList.toggle("active", active);
+            item.setAttribute("aria-pressed", String(active));
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

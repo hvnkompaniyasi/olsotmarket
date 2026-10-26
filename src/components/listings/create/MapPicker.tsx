@@ -1,7 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import type { LeafletMouseEvent, Map as LeafletMap, Marker } from "leaflet"
+import { useCallback, useEffect, useRef, useState } from "react"
+import Map, {
+  Marker,
+  type MapLayerMouseEvent,
+  type MapRef,
+  type MarkerDragEvent,
+} from "react-map-gl/maplibre"
+import { MAPLIBRE_WORKER_URL } from "@/lib/maplibre-worker"
 
 export interface Coordinates {
   lat: number
@@ -15,148 +21,118 @@ interface MapPickerProps {
   center?: [number, number]
 }
 
+interface NominatimAddress {
+  road?: unknown
+  pedestrian?: unknown
+  residential?: unknown
+  path?: unknown
+  street?: unknown
+  house_number?: unknown
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
+function getStreetAddress(value: unknown): string | null {
+  if (!isRecord(value) || !isRecord(value.address)) return null
+
+  const address = value.address as NominatimAddress
+  const road = [address.road, address.pedestrian, address.residential, address.path, address.street]
+    .find((candidate): candidate is string => typeof candidate === "string" && Boolean(candidate.trim()))
+  if (!road) return null
+
+  const houseNumber = typeof address.house_number === "string" ? address.house_number.trim() : ""
+  return [road.trim(), houseNumber].filter(Boolean).join(" ")
+}
+
 export default function MapPicker({ value, onChange, onAddressChange, center }: MapPickerProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<LeafletMap | null>(null)
-  const markerRef = useRef<Marker | null>(null)
-  const onChangeRef = useRef(onChange)
-  const onAddressChangeRef = useRef(onAddressChange)
-  const centerRef = useRef(center)
+  const mapRef = useRef<MapRef>(null)
   const geocodeControllerRef = useRef<AbortController | null>(null)
   const [geocoding, setGeocoding] = useState(false)
   const [geocodingError, setGeocodingError] = useState("")
-
   useEffect(() => {
-    onChangeRef.current = onChange
-  }, [onChange])
-
-  useEffect(() => {
-    onAddressChangeRef.current = onAddressChange
-  }, [onAddressChange])
-
-  useEffect(() => {
-    centerRef.current = center
-  }, [center])
-
-  useEffect(() => {
-    let cancelled = false
-    let map: LeafletMap | null = null
-
-    void import("leaflet").then(({ default: leaflet }) => {
-      if (cancelled || !containerRef.current) return
-      const initialCenter = centerRef.current
-      map = leaflet
-        .map(containerRef.current)
-        .setView(initialCenter ?? [41.3111, 69.2797], initialCenter ? 10 : 6)
-      leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors",
-        maxZoom: 19,
-      }).addTo(map)
-      map.on("click", (event: LeafletMouseEvent) => {
-        onChangeRef.current({ lat: event.latlng.lat, lng: event.latlng.lng })
-      })
-      mapRef.current = map
-      map.whenReady(() => map?.invalidateSize())
-      window.setTimeout(() => map?.invalidateSize(), 100)
-    })
-
-    return () => {
-      cancelled = true
-      geocodeControllerRef.current?.abort()
-      map?.remove()
-      mapRef.current = null
-      markerRef.current = null
+    if (center && !value) {
+      mapRef.current?.flyTo({ center: [center[1], center[0]], zoom: 10 })
     }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    void import("leaflet").then(({ default: leaflet }) => {
-      if (cancelled) return
-      const map = mapRef.current
-      if (!map) return
-
-      if (value) {
-        if (markerRef.current) {
-          markerRef.current.setLatLng([value.lat, value.lng])
-        } else {
-          markerRef.current = leaflet
-            .marker([value.lat, value.lng], { draggable: true })
-            .addTo(map)
-          markerRef.current.on("dragend", async () => {
-            const position = markerRef.current?.getLatLng()
-            if (!position) return
-            const coordinates = { lat: position.lat, lng: position.lng }
-            onChangeRef.current(coordinates)
-            if (!onAddressChangeRef.current) return
-
-            geocodeControllerRef.current?.abort()
-            const controller = new AbortController()
-            geocodeControllerRef.current = controller
-            setGeocodingError("")
-            setGeocoding(true)
-            try {
-              const query = new URLSearchParams({
-                format: "jsonv2",
-                lat: String(coordinates.lat),
-                lon: String(coordinates.lng),
-              })
-              const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?${query.toString()}`,
-                { signal: controller.signal },
-              )
-              if (!response.ok) throw new Error(`Nominatim API status ${response.status}`)
-              const result: unknown = await response.json()
-              if (!isRecord(result) || !isRecord(result.address)) {
-                throw new Error("Nominatim returned no address data")
-              }
-              const address = result.address
-              const road =
-                address.road ??
-                address.pedestrian ??
-                address.residential ??
-                address.path ??
-                address.street
-              if (typeof road === "string" && road.trim()) {
-                const houseNumber =
-                  typeof address.house_number === "string" ? address.house_number.trim() : ""
-                onAddressChangeRef.current(
-                  [road.trim(), houseNumber].filter(Boolean).join(" "),
-                )
-              } else {
-                setGeocodingError("Bu joy uchun ko'cha manzili topilmadi")
-              }
-            } catch (error) {
-              if (!(error instanceof DOMException && error.name === "AbortError")) {
-                setGeocodingError("Ko'cha manzilini aniqlab bo'lmadi")
-              }
-            } finally {
-              if (!controller.signal.aborted) setGeocoding(false)
-            }
-          })
-        }
-        if (map.getZoom() < 10) map.setView([value.lat, value.lng], 14)
-      } else if (markerRef.current) {
-        markerRef.current.remove()
-        markerRef.current = null
-      }
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [value])
-
-  useEffect(() => {
-    if (center && !value) mapRef.current?.setView(center, 10)
   }, [center, value])
+
+  useEffect(() => () => geocodeControllerRef.current?.abort(), [])
+
+  const handleMapClick = useCallback(
+    (event: MapLayerMouseEvent) => {
+      onChange({ lat: event.lngLat.lat, lng: event.lngLat.lng })
+    },
+    [onChange],
+  )
+
+  const handleMarkerDragEnd = useCallback(
+    async (event: MarkerDragEvent) => {
+      const coordinates = { lat: event.lngLat.lat, lng: event.lngLat.lng }
+      onChange(coordinates)
+      if (!onAddressChange) return
+
+      geocodeControllerRef.current?.abort()
+      const controller = new AbortController()
+      geocodeControllerRef.current = controller
+      setGeocodingError("")
+      setGeocoding(true)
+
+      try {
+        const query = new URLSearchParams({
+          format: "jsonv2",
+          lat: String(coordinates.lat),
+          lon: String(coordinates.lng),
+        })
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?${query.toString()}`,
+          { signal: controller.signal },
+        )
+        if (!response.ok) throw new Error(`Nominatim API status ${response.status}`)
+
+        const address = getStreetAddress(await response.json())
+        if (address) {
+          onAddressChange(address)
+        } else {
+          setGeocodingError("Bu joy uchun ko'cha manzili topilmadi")
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setGeocodingError("Ko'cha manzilini aniqlab bo'lmadi")
+        }
+      } finally {
+        if (!controller.signal.aborted) setGeocoding(false)
+      }
+    },
+    [onAddressChange, onChange],
+  )
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200">
-      <div ref={containerRef} className="h-64 w-full" aria-label="E'lon xaritasi" />
+      <Map
+        ref={mapRef}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+        workerUrl={MAPLIBRE_WORKER_URL}
+        initialViewState={{
+          longitude: center?.[1] ?? 69.2401,
+          latitude: center?.[0] ?? 41.2995,
+          zoom: value ? 14 : 6,
+        }}
+        onClick={handleMapClick}
+        style={{ width: "100%", height: "16rem" }}
+        aria-label="E'lon xaritasi"
+      >
+        {value && (
+          <Marker
+            longitude={value.lng}
+            latitude={value.lat}
+            draggable
+            onDragEnd={handleMarkerDragEnd}
+            anchor="bottom"
+            color="#15803d"
+          />
+        )}
+      </Map>
       <p className="bg-white px-3 py-2 text-xs text-gray-500">
         Xaritani bosing yoki belgini sudrab joylashuvni belgilang
         {value && ` · ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}`}

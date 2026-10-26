@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import type { LayerGroup, Map as LeafletMap, Marker } from "leaflet"
+import { useCallback, useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
+import Map, { Marker, Popup, type MapRef } from "react-map-gl/maplibre"
 import { ArrowLeft, SlidersHorizontal, LocateFixed, Plus, Minus, X, Loader2, MapPin } from "lucide-react"
 import { REGIONS, DEAL_TYPES } from "@/lib/locations"
 import MobileNav from "@/components/MobileNav"
+import { MAPLIBRE_WORKER_URL } from "@/lib/maplibre-worker"
 
 interface MapListing {
   id: string
@@ -19,61 +21,42 @@ interface MapListing {
   longitude: number | null
 }
 
-const coordsOf = (l: MapListing): [number, number] => [l.latitude || 0, l.longitude || 0]
+interface Coordinates {
+  latitude: number
+  longitude: number
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isMapListing(value: unknown): value is MapListing {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.price === "number" &&
+    typeof value.region === "string" &&
+    typeof value.district === "string" &&
+    Array.isArray(value.images) &&
+    value.images.every((image) => typeof image === "string") &&
+    typeof value.type === "string" &&
+    (typeof value.latitude === "number" || value.latitude === null) &&
+    (typeof value.longitude === "number" || value.longitude === null)
+  )
+}
 
 function safeImageUrl(value: string): string | null {
   try {
-    const url = new URL(value, window.location.origin)
+    const url = new URL(value, "https://olsotmarket.uz")
     return url.protocol === "http:" || url.protocol === "https:" ? url.href : null
   } catch {
     return null
   }
 }
 
-function createPopupContent(listing: MapListing): HTMLElement {
-  const container = document.createElement("div")
-  container.style.minWidth = "190px"
-
-  const imageUrl = listing.images[0] ? safeImageUrl(listing.images[0]) : null
-  if (imageUrl) {
-    const image = document.createElement("img")
-    image.src = imageUrl
-    image.alt = listing.title ? `${listing.title} — e'lon rasmi` : "E'lon rasmi"
-    image.style.cssText = "width:100%;height:110px;object-fit:cover;border-radius:10px;margin-bottom:8px"
-    container.append(image)
-  }
-
-  const title = document.createElement("div")
-  title.textContent = (listing.title || "Sarlavhasiz").slice(0, 45)
-  title.style.cssText = "font-weight:700;font-size:13px;margin-bottom:2px"
-  container.append(title)
-
-  const price = document.createElement("div")
-  price.textContent = `$${listing.price.toLocaleString("en-US")}`
-  price.style.cssText = "color:#ea580c;font-weight:800;font-size:15px"
-  container.append(price)
-
-  const location = document.createElement("div")
-  location.textContent = `${listing.region}${listing.district ? `, ${listing.district}` : ""}`
-  location.style.cssText = "color:#6b7280;font-size:11px;margin:5px 0 8px"
-  container.append(location)
-
-  const link = document.createElement("a")
-  link.href = `/listing/${encodeURIComponent(listing.id)}`
-  link.textContent = "Ko'rish"
-  link.style.cssText = "display:block;text-align:center;background:linear-gradient(135deg,#fb923c,#0a7c4e);color:#fff;padding:8px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none"
-  container.append(link)
-
-  return container
-}
-
 export default function MapPage() {
-  const divRef = useRef<HTMLDivElement>(null)
-  const LRef = useRef<typeof import("leaflet") | null>(null)
-  const mapRef = useRef<LeafletMap | null>(null)
-  const groupRef = useRef<LayerGroup | null>(null)
-  const userMarkerRef = useRef<Marker | null>(null)
-
+  const mapRef = useRef<MapRef>(null)
   const [ready, setReady] = useState(false)
   const [listings, setListings] = useState<MapListing[]>([])
   const [region, setRegion] = useState("")
@@ -81,87 +64,83 @@ export default function MapPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [locating, setLocating] = useState(false)
   const [toast, setToast] = useState("")
+  const [selected, setSelected] = useState<MapListing | null>(null)
+  const [userLocation, setUserLocation] = useState<Coordinates | null>(null)
 
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(""), 2500)
-  }
-
-  useEffect(() => {
-    let map: LeafletMap | null = null
-    let cancelled = false
-    ;(async () => {
-      const L = (await import("leaflet")).default
-      if (cancelled || !divRef.current) return
-      LRef.current = L
-      map = L.map(divRef.current, { zoomControl: false }).setView([41.3111, 69.2797], 6)
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap",
-        maxZoom: 18,
-      }).addTo(map)
-      groupRef.current = L.layerGroup().addTo(map)
-      mapRef.current = map
-      setReady(true)
-    })()
-    return () => { cancelled = true; if (map) map.remove() }
+  const showToast = useCallback((message: string) => {
+    setToast(message)
+    window.setTimeout(() => setToast(""), 2500)
   }, [])
 
   useEffect(() => {
-    const params = new URLSearchParams()
-    if (region) params.set("region", region)
-    if (deal) params.set("deal", deal)
-    fetch(`/api/listings?${params.toString()}`)
-      .then((r) => r.json())
-      .then((d) => setListings((d.listings || []).filter((l: MapListing) => l.latitude !== null && l.longitude !== null)))
-      .catch(() => setListings([]))
-  }, [region, deal])
+    const controller = new AbortController()
+    const loadListings = async () => {
+      const params = new URLSearchParams()
+      if (region) params.set("region", region)
+      if (deal) params.set("deal", deal)
+
+      try {
+        const response = await fetch(`/api/listings?${params.toString()}`, {
+          signal: controller.signal,
+        })
+        if (!response.ok) throw new Error(`Listings API status ${response.status}`)
+        const data: unknown = await response.json()
+        const items = isRecord(data) && Array.isArray(data.listings) ? data.listings : []
+        setListings(items.filter(isMapListing).filter((listing) => (
+          listing.latitude !== null && listing.longitude !== null
+        )))
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setListings([])
+          showToast("E'lonlarni yuklab bo'lmadi")
+        }
+      }
+    }
+
+    void loadListings()
+    return () => controller.abort()
+  }, [deal, region, showToast])
 
   useEffect(() => {
-    const L = LRef.current
-    const group = groupRef.current
-    const map = mapRef.current
-    if (!ready || !L || !group || !map) return
-    group.clearLayers()
-    listings.forEach((l) => {
-      const [lat, lng] = coordsOf(l)
-      const pin = document.createElement("div")
-      pin.textContent = `$${Math.round(l.price / 1000)}k`
-      pin.style.cssText = "background:linear-gradient(135deg,#fb923c,#0a7c4e);color:#fff;padding:5px 12px;border-radius:9999px;font-size:12px;font-weight:700;box-shadow:0 4px 14px rgba(249,115,22,.45);border:2px solid #fff;white-space:nowrap;transform:translate(-50%,-50%)"
-      const icon = L.divIcon({
-        className: "",
-        html: pin,
-        iconSize: [0, 0],
-      })
-      const marker = L.marker([lat, lng], { icon }).addTo(group)
-      marker.bindPopup(createPopupContent(l))
-    })
-    if (listings.length > 0) {
-      const pts = listings.map((l) => { const [la, ln] = coordsOf(l); return L.latLng(la, ln) })
-      map.fitBounds(L.latLngBounds(pts), { padding: [60, 60] })
-    }
+    if (!ready || listings.length === 0) return
+    const positionedListings = listings.filter(
+      (listing): listing is MapListing & { latitude: number; longitude: number } =>
+        listing.latitude !== null && listing.longitude !== null,
+    )
+    if (positionedListings.length === 0) return
+    const longitudes = positionedListings.map((listing) => listing.longitude)
+    const latitudes = positionedListings.map((listing) => listing.latitude)
+    const bounds: [[number, number], [number, number]] = [
+      [Math.min(...longitudes), Math.min(...latitudes)],
+      [Math.max(...longitudes), Math.max(...latitudes)],
+    ]
+    mapRef.current?.fitBounds(bounds, { padding: 60, maxZoom: 14 })
   }, [listings, ready])
 
+  const activeListing = listings.find((listing) => listing.id === selected?.id)
+
   const locate = () => {
-    if (!navigator.geolocation) { showToast("Brauzeringiz joylashuvni qo'llab-quvvatlamaydi"); return }
+    if (!navigator.geolocation) {
+      showToast("Brauzeringiz joylashuvni qo'llab-quvvatlamaydi")
+      return
+    }
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords
-        const map = mapRef.current
-        const L = LRef.current
-        if (!map || !L) return
-        map.setView([latitude, longitude], 13)
-        if (userMarkerRef.current) map.removeLayer(userMarkerRef.current)
-        const userDot = document.createElement("div")
-        userDot.className = "user-dot"
-        userMarkerRef.current = L.marker([latitude, longitude], {
-          icon: L.divIcon({ className: "", html: userDot, iconSize: [18, 18], iconAnchor: [9, 9] }),
-        }).addTo(map)
+      ({ coords }) => {
+        const location = { latitude: coords.latitude, longitude: coords.longitude }
+        setUserLocation(location)
+        mapRef.current?.flyTo({
+          center: [location.longitude, location.latitude],
+          zoom: 13,
+        })
         setLocating(false)
         showToast("📍 Joylashuvingiz belgilandi")
       },
-      () => { setLocating(false); showToast("Joylashuv ruxsati berilmadi") },
-      { enableHighAccuracy: true, timeout: 8000 }
+      () => {
+        setLocating(false)
+        showToast("Joylashuv ruxsati berilmadi")
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
     )
   }
 
@@ -169,22 +148,95 @@ export default function MapPage() {
 
   return (
     <div className="fixed inset-0 z-40 overflow-hidden bg-zinc-100 dark:bg-zinc-950">
-      <div ref={divRef} className="absolute inset-0 z-0" />
+      <div className="pointer-events-auto absolute inset-0 z-0">
+        <Map
+          ref={mapRef}
+          mapStyle="https://tiles.openfreemap.org/styles/liberty"
+          workerUrl={MAPLIBRE_WORKER_URL}
+          initialViewState={{ longitude: 69.2797, latitude: 41.3111, zoom: 6 }}
+          onLoad={() => setReady(true)}
+          onError={(event) => console.error("MapLibre /map error:", event.error)}
+          interactive
+          dragPan
+          scrollZoom
+          doubleClickZoom
+          touchZoomRotate
+          style={{ width: "100%", height: "100%" }}
+        >
+        {listings.map((listing) => (
+          <Marker
+            key={listing.id}
+            longitude={listing.longitude ?? 69.2797}
+            latitude={listing.latitude ?? 41.3111}
+            anchor="bottom"
+          >
+            <button
+              type="button"
+              onClick={() => setSelected(listing)}
+              className="whitespace-nowrap rounded-full border-2 border-white bg-gradient-to-br from-orange-400 to-green-700 px-3 py-1.5 text-xs font-bold text-white shadow-[0_4px_14px_rgba(249,115,22,.45)]"
+              aria-label={`E'lon: $${Math.round(listing.price / 1000)} ming`}
+            >
+              ${Math.round(listing.price / 1000)}k
+            </button>
+          </Marker>
+        ))}
+        {activeListing && activeListing.latitude !== null && activeListing.longitude !== null && (
+          <Popup
+            longitude={activeListing.longitude}
+            latitude={activeListing.latitude}
+            anchor="bottom"
+            onClose={() => setSelected(null)}
+            closeOnClick={false}
+          >
+            <div className="w-[190px]">
+              {activeListing.images[0] && safeImageUrl(activeListing.images[0]) && (
+                <div className="relative mb-2 h-[110px] overflow-hidden rounded-[10px]">
+                  <Image
+                    src={safeImageUrl(activeListing.images[0]) ?? ""}
+                    alt={`${activeListing.title} — e'lon rasmi`}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <p className="mb-0.5 text-[13px] font-bold">{(activeListing.title || "Sarlavhasiz").slice(0, 45)}</p>
+              <p className="text-[15px] font-extrabold text-orange-600">
+                ${activeListing.price.toLocaleString("en-US")}
+              </p>
+              <p className="my-1 text-[11px] text-gray-500">
+                {activeListing.region}{activeListing.district ? `, ${activeListing.district}` : ""}
+              </p>
+              <Link
+                href={`/listing/${encodeURIComponent(activeListing.id)}`}
+                className="block rounded-lg bg-gradient-to-br from-orange-400 to-green-700 p-2 text-center text-xs font-bold text-white"
+              >
+                Ko&apos;rish
+              </Link>
+            </div>
+          </Popup>
+        )}
+        {userLocation && (
+          <Marker longitude={userLocation.longitude} latitude={userLocation.latitude}>
+            <span className="user-dot" aria-label="Sizning joylashuvingiz" />
+          </Marker>
+        )}
+        </Map>
+      </div>
 
       {!ready && (
-        <div className="absolute inset-0 z-[400] flex items-center justify-center bg-green-50 dark:bg-zinc-900">
+        <div className="pointer-events-none absolute inset-0 z-[400] flex items-center justify-center bg-green-50 dark:bg-zinc-900">
           <Loader2 className="h-8 w-8 animate-spin text-green-500" />
         </div>
       )}
 
-      {/* Yuqori panel */}
-      <div className="absolute top-3 left-3 right-3 z-[500] flex items-center gap-2">
+      <div className="absolute left-3 right-3 top-3 z-[500] flex items-center gap-2">
         <Link href="/listings" className={fabCls} aria-label="Orqaga">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="flex-1 h-11 px-4 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 flex items-center gap-2 min-w-0">
-          <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
+        <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-white/95 px-4 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/95">
+          <MapPin className="h-4 w-4 flex-shrink-0 text-green-500" />
+          <span className="truncate text-sm font-semibold text-gray-700 dark:text-gray-200">
             Xaritadagi e&apos;lonlar: {listings.length}
           </span>
         </div>
@@ -194,13 +246,12 @@ export default function MapPage() {
       </div>
 
       {toast && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[600] px-4 py-2 bg-zinc-900/90 text-white text-xs font-semibold rounded-full shadow-xl">
+        <div role="status" className="absolute left-1/2 top-16 z-[600] -translate-x-1/2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-semibold text-white shadow-xl">
           {toast}
         </div>
       )}
 
-      {/* O'ng past FAB'lar (karusel yo'q, pastda) */}
-      <div className="absolute right-3 bottom-24 z-[500] flex flex-col gap-2">
+      <div className="absolute bottom-24 right-3 z-[500] flex flex-col gap-2">
         <button onClick={locate} className={fabCls} aria-label="O'zim turgan joy">
           {locating ? <Loader2 className="h-5 w-5 animate-spin text-blue-500" /> : <LocateFixed className="h-5 w-5 text-blue-500" />}
         </button>
@@ -212,15 +263,14 @@ export default function MapPage() {
         </button>
       </div>
 
-      {/* Filter bottom sheet */}
       {sheetOpen && (
         <div className="absolute inset-0 z-[700] bg-black/50 backdrop-blur-sm" onClick={() => setSheetOpen(false)}>
           <div
-            className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl p-5 pb-8 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8 shadow-2xl dark:bg-zinc-900"
+            onClick={(event) => event.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-gray-300 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
-            <div className="flex items-center justify-between mb-4">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-700" />
+            <div className="mb-4 flex items-center justify-between">
               <h3 className="font-bold text-gray-800 dark:text-white">Filtrlar</h3>
               <button onClick={() => setSheetOpen(false)} aria-label="Yopish">
                 <X className="h-5 w-5 text-gray-400" />
@@ -228,24 +278,24 @@ export default function MapPage() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 block">Hudud</label>
-                <select value={region} onChange={(e) => setRegion(e.target.value)} className="h-12 w-full px-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-800 dark:text-white outline-none">
+                <label className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-300">Hudud</label>
+                <select value={region} onChange={(event) => setRegion(event.target.value)} className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
                   <option value="">Barcha hududlar</option>
-                  {REGIONS.map((r) => (<option key={r.id} value={r.name}>{r.name}</option>))}
+                  {REGIONS.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 block">Bitim turi</label>
-                <select value={deal} onChange={(e) => setDeal(e.target.value)} className="h-12 w-full px-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm text-gray-800 dark:text-white outline-none">
+                <label className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-300">Bitim turi</label>
+                <select value={deal} onChange={(event) => setDeal(event.target.value)} className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
                   <option value="">Barcha turlar</option>
-                  {DEAL_TYPES.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
+                  {DEAL_TYPES.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </div>
               <div className="flex gap-2 pt-1">
-                <button onClick={() => { setRegion(""); setDeal("") }} className="flex-1 h-12 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-semibold">
+                <button onClick={() => { setRegion(""); setDeal("") }} className="h-12 flex-1 rounded-xl bg-gray-100 text-sm font-semibold text-gray-700 dark:bg-zinc-800 dark:text-gray-200">
                   Tozalash
                 </button>
-                <button onClick={() => setSheetOpen(false)} className="flex-1 h-12 bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg">
+                <button onClick={() => setSheetOpen(false)} className="h-12 flex-1 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 text-sm font-bold text-white shadow-lg">
                   Ko&apos;rish ({listings.length})
                 </button>
               </div>

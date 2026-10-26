@@ -3,7 +3,7 @@ import MessagesClient from "@/components/MessagesClient"
 export const metadata = {
   title: "Xabarlar | Olsot Market",
   description: "Xabar almashish",
-  openGraph: { images: ["/icons/icon-512.svg"] },
+  openGraph: { images: ["/logo.svg"] },
 }
 
 export const dynamic = "force-dynamic"

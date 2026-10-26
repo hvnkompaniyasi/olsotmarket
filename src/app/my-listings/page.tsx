@@ -14,7 +14,7 @@ import { Pencil, Home, CheckCircle, XCircle, Plus, ChevronLeft, ChevronRight } f
 export const metadata = {
   title: "Mening e'lonlarim | Olsot Market",
   description: "Sizning e'lonlaringiz",
-  openGraph: { images: ["/icons/icon-512.svg"] },
+  openGraph: { images: ["/logo.svg"] },
 }
 
 export const dynamic = "force-dynamic"

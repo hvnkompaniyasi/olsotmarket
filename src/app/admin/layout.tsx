@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
+import Logo from '@/components/ui/Logo';
 
 const menuItems = [
   { href: '/admin', label: 'Bosh sahifa' },
@@ -43,10 +44,11 @@ export default function AdminLayout({
         <div className="border-b border-gray-200 p-6">
           <Link
             href="/admin"
-            className="text-xl font-bold text-green-700"
+            className="inline-flex min-w-0"
             onClick={() => setIsSidebarOpen(false)}
+            aria-label="Olsot Market admin bosh sahifasi"
           >
-            Olsot Market
+            <Logo size="sm" />
           </Link>
           <p className="mt-1 text-xs text-gray-500">Boshqaruv paneli</p>
         </div>

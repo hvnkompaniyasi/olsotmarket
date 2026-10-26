@@ -1,65 +1,63 @@
 "use client"
 
 import Link from "next/link"
-import { useSession, signOut } from "next-auth/react"
-import { Home, Heart, LogOut } from "lucide-react"
-import ThemeToggle from "@/components/ThemeToggle"
+import { signOut, useSession } from "next-auth/react"
+import { LogOut, UserRound } from "lucide-react"
 import ChatNavLink from "@/components/ChatNavLink"
+import Logo from "@/components/ui/Logo"
 
-const linkCls = "px-3 xl:px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-zinc-800 rounded-lg transition-all"
+const linkCls =
+  "rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"
 
 export default function Navbar() {
-  const { data: session, status } = useSession()
-  const isLoading = status === "loading"
+  const { data: session } = useSession()
+  const profileHref = session ? "/profile" : "/login?callbackUrl=/profile"
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/85 backdrop-blur-xl border-b border-white/60 dark:border-zinc-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-400/30">
-              <Home className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Olsot Market
+    <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/95 pt-[env(safe-area-inset-top)] shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label="Olsot Market — bosh sahifa" className="flex min-w-0">
+          <Logo size="sm" />
+        </Link>
+
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Asosiy navigatsiya">
+          <Link href="/" className={linkCls}>Bosh sahifa</Link>
+          <Link href="/listings?type=SALE" className={linkCls}>Sotib olish</Link>
+          <Link href="/listings?type=RENT" className={linkCls}>Ijaraga</Link>
+          <Link href="/favorites" className={linkCls}>Sevimlilar</Link>
+          <Link href="/listings" className={linkCls}>Barcha e&apos;lonlar</Link>
+          <Link href="/map" className={linkCls}>Xarita</Link>
+        </nav>
+
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-11 w-11 items-center justify-center">
+            <ChatNavLink />
+          </span>
+          <Link
+            href={profileHref}
+            aria-label={session ? "Profil" : "Kirish"}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-emerald-900 transition hover:bg-emerald-50"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-800 text-white shadow-sm">
+              {session?.user?.name ? (
+                <span className="text-sm font-bold">
+                  {session.user.name.trim().slice(0, 1).toLocaleUpperCase()}
+                </span>
+              ) : (
+                <UserRound className="h-4 w-4" />
+              )}
             </span>
           </Link>
-
-          <nav className="hidden lg:flex items-center gap-1">
-            <Link href="/" className={linkCls}>Bosh sahifa</Link>
-            <Link href="/listings?deal=SALE" className={linkCls}>Sotib olish</Link>
-            <Link href="/listings?deal=RENT" className={linkCls}>Ijaraga</Link>
-            <Link href="/favorites" className={linkCls}>Sevimlilar</Link>
-            <Link href="/listings" className={linkCls}>Barcha e'lonlar</Link>
-            <Link href="/map" className={linkCls}>Xarita</Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <ChatNavLink />
-            {isLoading ? (
-              <div className="px-4 py-2 bg-gray-200 dark:bg-zinc-700 rounded-xl animate-pulse" aria-hidden="true">
-                <span className="text-sm font-semibold text-gray-400 dark:text-gray-500">Kirish</span>
-              </div>
-            ) : session ? (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  aria-label="Chiqish"
-                  className="hidden sm:flex w-9 h-9 rounded-xl bg-white/80 dark:bg-zinc-800 border border-white/70 dark:border-zinc-700 items-center justify-center text-red-500 shadow-md hover:scale-110 transition-transform"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="px-4 py-2 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-green-400/30 transition-all"
-              >
-                Kirish
-              </Link>
-            )}
-          </div>
+          {session && (
+            <button
+              type="button"
+              onClick={() => void signOut({ callbackUrl: "/" })}
+              aria-label="Chiqish"
+              className="hidden h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-red-600 sm:flex"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
     </header>

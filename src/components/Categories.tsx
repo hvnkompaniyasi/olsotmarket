@@ -1,36 +1,57 @@
 import Link from "next/link"
-import { Building2, Home, Briefcase, Trees, Warehouse } from "lucide-react"
+import { Building2, Home, MapPin, Plus, Trees, Store } from "lucide-react"
 
-const CATS = [
-  { id: "APARTMENT", name: "Kvartira", icon: Building2 },
-  { id: "HOUSE", name: "Uy / Hovli", icon: Home },
-  { id: "OFFICE", name: "Ofis", icon: Briefcase },
-  { id: "LAND", name: "Yer", icon: Trees },
-  { id: "WAREHOUSE", name: "Ombor", icon: Warehouse },
+const CATEGORIES = [
+  { id: "APARTMENT", label: "Kvartiralar", icon: Building2 },
+  { id: "HOUSE", label: "Hovli uylar", icon: Home },
+  { id: "LAND", label: "Yerlar", icon: Trees },
+  { id: "OFFICE", label: "Tijoriy", icon: Store },
 ]
 
-export default function Categories() {
+interface CategoriesProps {
+  selectedCategory?: string
+}
+
+export default function Categories({ selectedCategory = "APARTMENT" }: CategoriesProps) {
   return (
-    <section className="pb-6">
-      <h2 className="text-base font-bold text-gray-900 dark:text-white mb-3">Kategoriyalar</h2>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
-        {CATS.map((c) => {
-          const Icon = c.icon
+    <section className="pb-1">
+      <h2 className="sr-only">Mulk turi bo&apos;yicha qidirish</h2>
+      <div className="no-scrollbar flex gap-2 overflow-x-auto py-1">
+        {CATEGORIES.map((category) => {
+          const Icon = category.icon
+          const active = selectedCategory === category.id
           return (
             <Link
-              key={c.id}
-              href={`/listings?category=${c.id}`}
-              className="flex-shrink-0 flex items-center gap-2 pl-2 pr-4 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.05)] hover:border-[#0A7C4E] transition-colors"
+              key={category.id}
+              href={`/listings?category=${category.id}`}
+              aria-current={active ? "page" : undefined}
+              className={`flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition active:scale-95 ${
+                active
+                  ? "bg-emerald-800 text-white shadow-sm"
+                  : "bg-white text-gray-700 shadow-[0_2px_8px_rgba(17,24,39,0.04)] hover:bg-slate-50"
+              }`}
             >
-              <span className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
-                <Icon className="h-4 w-4 text-[#0A7C4E]" />
-              </span>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">
-                {c.name}
-              </span>
+              <Icon className={`h-4 w-4 ${active ? "text-white" : "text-slate-600"}`} />
+              {category.label}
             </Link>
           )
         })}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Link
+          href="/map"
+          className="flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-3 text-sm font-medium text-gray-800 shadow-[0_2px_10px_rgba(17,24,39,0.04)] transition active:scale-[0.98]"
+        >
+          <MapPin className="h-5 w-5 text-emerald-800" />
+          Xaritada ko&apos;rish
+        </Link>
+        <Link
+          href="/listings/create"
+          className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-3 text-sm font-semibold text-emerald-800 shadow-[0_2px_8px_rgba(0,106,57,0.06)] transition active:scale-[0.98]"
+        >
+          <Plus className="h-5 w-5" />
+          E&apos;lon qo&apos;shish
+        </Link>
       </div>
     </section>
   )

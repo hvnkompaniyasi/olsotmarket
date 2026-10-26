@@ -1,32 +1,20 @@
-import { Search, ShieldCheck, Handshake, Headphones } from "lucide-react"
-
-const ITEMS = [
-  { icon: Search, title: "Tezkor qidiruv", sub: "14 hudud bo'ylab" },
-  { icon: ShieldCheck, title: "Moderatsiya", sub: "Har e'lon tekshirilgan" },
-  { icon: Handshake, title: "To'g'ridan-to'g'ri", sub: "Vositasiz bitim" },
-  { icon: Headphones, title: "Yordam", sub: "Doimiy qo'llab-quvvatish" },
-]
+import { ShieldCheck } from "lucide-react"
 
 export default function Advantages() {
   return (
-    <section className="pb-8">
-      <h2 className="text-base font-bold text-gray-900 dark:text-white mb-3">Nega Olsot Market?</h2>
-      <div className="grid grid-cols-2 gap-2.5">
-        {ITEMS.map((item) => {
-          const Icon = item.icon
-          return (
-            <div
-              key={item.title}
-              className="bg-white dark:bg-zinc-900 rounded-2xl p-3.5 border border-gray-100 dark:border-zinc-800 shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
-            >
-              <span className="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center mb-2">
-                <Icon className="h-4 w-4 text-[#0A7C4E]" />
-              </span>
-              <div className="text-sm font-bold text-gray-800 dark:text-white">{item.title}</div>
-              <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{item.sub}</div>
-            </div>
-          )
-        })}
+    <section className="pb-6 pt-1">
+      <div className="flex items-center gap-3 rounded-2xl bg-[#f1f3ff] p-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-800 shadow-sm">
+          <ShieldCheck className="h-6 w-6" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-semibold text-gray-950">
+            Xavfsiz va shaffof bitimlar
+          </h2>
+          <p className="mt-0.5 text-xs leading-5 text-slate-600">
+            E&apos;lonlar moderatsiyadan o&apos;tkaziladi
+          </p>
+        </div>
       </div>
     </section>
   )

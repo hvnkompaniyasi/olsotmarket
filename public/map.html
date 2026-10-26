@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>Xarita — Olsot Market</title>
+    <link rel="stylesheet" href="/design-system.css">
+    <style>
+      body { overflow: hidden; }
+      .map-stage { position: fixed; z-index: 0; top: 72px; right: 0; bottom: 0; left: 0; overflow: hidden; background: #e8eee5; }
+      #map { position: absolute; inset: 0 auto auto 0; width: 100%; height: 100vh; z-index: 0; overflow: hidden; background-color: #eef0e8; background-image: linear-gradient(26deg, transparent 47%, rgb(255 255 255 / 88%) 48%, rgb(255 255 255 / 88%) 50%, transparent 51%), linear-gradient(116deg, transparent 40%, rgb(255 255 255 / 82%) 41%, rgb(255 255 255 / 82%) 43%, transparent 44%), linear-gradient(3deg, transparent 63%, rgb(255 255 255 / 85%) 64%, rgb(255 255 255 / 85%) 66%, transparent 67%), linear-gradient(75deg, transparent 22%, rgb(224 215 193 / 75%) 23%, rgb(224 215 193 / 75%) 24%, transparent 25%), linear-gradient(160deg, transparent 73%, rgb(222 214 193 / 75%) 74%, rgb(222 214 193 / 75%) 75%, transparent 76%), repeating-linear-gradient(0deg, transparent 0 68px, rgb(255 255 255 / 34%) 69px 71px), repeating-linear-gradient(90deg, transparent 0 74px, rgb(255 255 255 / 34%) 75px 77px), linear-gradient(135deg, #e8efe1, #f5f0e5 46%, #e4eee0); }
+      #map::before { position: absolute; inset: -15%; background: radial-gradient(ellipse at 32% 48%, transparent 0 10%, rgb(129 190 183 / 65%) 10.5% 12%, transparent 12.5%), radial-gradient(ellipse at 28% 77%, rgb(187 218 174 / 58%) 0 9%, transparent 9.5%), radial-gradient(ellipse at 79% 29%, rgb(188 218 177 / 60%) 0 10%, transparent 10.5%), radial-gradient(ellipse at 74% 83%, rgb(197 222 184 / 55%) 0 8%, transparent 8.5%); content: ""; }
+      #map::after { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(248 249 255 / 38%), transparent 46%, rgb(248 249 255 / 14%)); content: ""; pointer-events: none; }
+      .map-label { position: absolute; z-index: 1; color: #788378; font-size: 10px; font-weight: 600; opacity: .78; }
+      .map-label.one { top: 39%; left: 8%; }.map-label.two { top: 62%; right: 13%; }.map-label.three { top: 78%; left: 35%; }
+      .map-overlay { position: absolute; z-index: 20; top: 14px; right: 16px; left: 16px; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+      .map-search, .map-categories { pointer-events: auto; }
+      .map-search { display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 18px; background: rgb(255 255 255 / 96%); box-shadow: 0 8px 20px -4px rgb(20 27 43 / 12%); backdrop-filter: blur(14px); }
+      .back-button { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 12px; background: transparent; color: var(--ink); cursor: pointer; }
+      .map-search .search-field { flex: 1; height: 44px; padding: 0 4px; border-radius: 0; box-shadow: none; }
+      .map-search .search-field input { font-size: 14px; }
+      .map-search .icon-button { width: 42px; height: 42px; border-radius: 13px; background: var(--primary); color: #fff; box-shadow: none; }
+      .map-categories { margin: 0 -16px; padding: 2px 16px 9px; }
+      .map-categories .chip { min-height: 38px; padding: 0 15px; background: rgb(255 255 255 / 94%); }
+      .map-categories .chip.active { background: var(--primary); }
+      .map-controls { position: absolute; z-index: 10; top: 174px; right: 16px; display: flex; flex-direction: column; gap: 7px; }
+      .map-controls .icon-button { width: 46px; height: 46px; border-radius: 50%; background: rgb(255 255 255 / 95%); box-shadow: 0 6px 16px rgb(20 27 43 / 10%); }
+      .map-pin { position: absolute; z-index: 5; display: flex; flex-direction: column; align-items: center; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 4px 10px rgb(0 106 57 / 13%)); transition: transform 150ms ease; }
+      .map-pin:active { transform: scale(.94); }
+      .price-pin { display: inline-flex; min-height: 38px; align-items: center; gap: 6px; padding: 0 15px; border-radius: 999px; background: #fff; color: var(--primary); font-size: 15px; font-weight: 700; white-space: nowrap; }
+      .price-pin::after { position: absolute; top: 29px; left: calc(50% - 6px); width: 12px; height: 12px; transform: rotate(45deg); border-radius: 1px; background: inherit; content: ""; }
+      .map-pin.selected { z-index: 8; }
+      .map-pin.selected .price-pin { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgb(0 106 57 / 28%); }
+      .map-pin.selected .price-pin::after { background: var(--primary); }
+      .pin-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+      .map-pin.selected .pin-dot { background: #fff; }
+      .pin-a { top: 45%; left: 23%; }.pin-b { top: 27%; left: 49%; }.pin-c { top: 29%; right: 9%; }.pin-d { top: 63%; left: 10%; }.pin-e { top: 55%; right: 12%; }
+      .preview-card { position: absolute; z-index: 30; right: 16px; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 12px); left: 16px; width: min(calc(100% - 32px), 560px); margin: 0 auto; transition: transform 250ms ease, opacity 250ms ease; }
+      .preview-card.is-hidden { transform: translateY(140%); opacity: 0; pointer-events: none; }
+      .preview-inner { position: relative; display: flex; min-width: 0; gap: 12px; padding: 12px; border-radius: 20px; background: #fff; box-shadow: 0 12px 32px -4px rgb(20 27 43 / 18%); }
+      .preview-photo { position: relative; width: 132px; min-height: 128px; flex: 0 0 auto; overflow: hidden; border-radius: 14px; background: var(--surface-low); }
+      .preview-photo img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; }
+      .preview-photo .badge { position: absolute; top: 8px; left: 8px; }
+      .preview-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; justify-content: space-between; padding: 4px 19px 2px 0; }
+      .preview-price { color: var(--primary); font-size: clamp(17px, 5vw, 22px); font-weight: 700; white-space: nowrap; }
+      .price-per-meter { color: var(--ink-muted); font-size: 11px; white-space: nowrap; }
+      .preview-title { overflow: hidden; margin: 4px 0 0; font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+      .preview-place { display: flex; align-items: center; gap: 5px; margin-top: 3px; color: var(--ink-muted); font-size: 12px; }
+      .preview-place .material-symbols-outlined { color: var(--primary); font-size: 16px; }
+      .preview-specs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .preview-specs span { display: inline-flex; align-items: center; gap: 4px; padding: 5px 8px; border-radius: 999px; background: #d8f8ea; color: #005236; font-size: 11px; font-weight: 600; white-space: nowrap; }
+      .dismiss-card { position: absolute; z-index: 2; top: 8px; right: 8px; display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 50%; background: #e9edff; color: #34443a; cursor: pointer; }
+      .map-message { position: absolute; z-index: 15; top: 232px; right: 16px; padding: 8px 12px; border-radius: 10px; background: #fff; color: var(--primary); font-size: 12px; box-shadow: var(--shadow-card); opacity: 0; transition: opacity 150ms ease; pointer-events: none; }
+      .map-message.visible { opacity: 1; }
+      .bottom-nav { z-index: 40; }
+      @media (min-width: 760px) {
+        .map-overlay { top: 20px; right: max(28px, calc((100vw - 1120px) / 2)); left: max(28px, calc((100vw - 1120px) / 2)); }
+        .map-search { max-width: 620px; }
+        .map-categories { margin-left: 0; padding-left: 0; }
+        .map-controls { right: max(28px, calc((100vw - 1120px) / 2)); }
+        .preview-card { bottom: 24px; left: max(28px, calc((100vw - 1120px) / 2)); margin: 0; }
+      }
+      @media (max-width: 380px) {
+        .preview-card { right: 10px; left: 10px; width: calc(100% - 20px); }
+        .preview-inner { gap: 9px; padding: 9px; }
+        .preview-photo { width: 108px; min-height: 112px; }
+        .preview-copy { padding-right: 17px; }
+        .preview-title { font-size: 13px; }
+        .preview-place { font-size: 11px; }
+        .price-per-meter { font-size: 9px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Olsot Market bosh sahifa">
+        <span class="brand-mark"><img src="/logo.svg" alt=""></span>
+        <span class="brand-copy"><span class="brand-name">Olsot Market</span><span class="brand-page">Xarita</span></span>
+      </a>
+      <div class="header-actions">
+        <a class="header-icon" href="/messages" aria-label="Xabarlar"><span class="material-symbols-outlined">chat_bubble</span><span class="unread-dot"></span></a>
+        <a class="profile-shortcut" href="/profile.html" aria-label="Profil"><span class="material-symbols-outlined">person</span></a>
+      </div>
+    </header>
+
+    <main class="map-stage" aria-label="E'lonlar xaritasi">
+      <div id="map" style="width: 100%; height: 100vh; z-index: 0;" aria-label="Keyinchalik Leaflet yoki Google Maps xaritasi shu yerga ulanadi">
+        <span class="map-label one">Toshkent Botanika bog&apos;i</span>
+        <span class="map-label two">Central Park</span>
+        <span class="map-label three">Toshkent markazi</span>
+      </div>
+
+      <div class="map-overlay">
+        <div class="map-search">
+          <a class="back-button" href="/search.html" aria-label="Qidiruvga qaytish"><span class="material-symbols-outlined">arrow_back</span></a>
+          <label class="search-field">
+            <span class="material-symbols-outlined">search</span>
+            <input type="search" placeholder="Xarita bo'ylab qidirish..." aria-label="Xarita bo'ylab qidirish">
+          </label>
+          <button class="icon-button" type="button" aria-label="Filtrlar"><span class="material-symbols-outlined">tune</span></button>
+        </div>
+        <div class="h-scroll map-categories" role="group" aria-label="Xarita bo'yicha kategoriyalar">
+          <button class="chip active" type="button"><span class="material-symbols-outlined">apps</span>Barchasi</button>
+          <button class="chip" type="button"><span class="material-symbols-outlined">apartment</span>Kvartiralar</button>
+          <button class="chip" type="button"><span class="material-symbols-outlined">cottage</span>Hovli uylar</button>
+          <button class="chip" type="button">Narx: Barchasi</button>
+        </div>
+      </div>
+
+      <div class="map-controls" aria-label="Xarita boshqaruvlari">
+        <button class="icon-button" type="button" aria-label="Kattalashtirish" data-map-action="zoom-in"><span class="material-symbols-outlined">add</span></button>
+        <button class="icon-button" type="button" aria-label="Kichiklashtirish" data-map-action="zoom-out"><span class="material-symbols-outlined">remove</span></button>
+        <button class="icon-button" type="button" aria-label="Mening joylashuvim" data-map-action="locate"><span class="material-symbols-outlined">my_location</span></button>
+      </div>
+      <div class="map-message" id="mapMessage" role="status">Xarita keyinchalik ulanadi</div>
+
+      <button class="map-pin pin-a selected" type="button" aria-label="85 000 dollar, tanlangan e'lon" aria-pressed="true">
+        <span class="price-pin"><span class="material-symbols-outlined" style="font-size:17px">apartment</span>85 000 $</span>
+      </button>
+      <button class="map-pin pin-b" type="button" aria-label="650 dollar oyiga">
+        <span class="price-pin"><span class="pin-dot"></span>650 $/oy</span>
+      </button>
+      <button class="map-pin pin-c" type="button" aria-label="320 000 dollar">
+        <span class="price-pin">320 000 $</span>
+      </button>
+      <button class="map-pin pin-d" type="button" aria-label="68 000 dollar">
+        <span class="price-pin">68 000 $</span>
+      </button>
+      <button class="map-pin pin-e" type="button" aria-label="115 000 dollar">
+        <span class="price-pin">115 000 $</span>
+      </button>
+
+      <section class="preview-card" id="propertyPreviewCard" aria-label="Tanlangan e'lon">
+        <div class="preview-inner">
+          <button class="dismiss-card" id="dismissCard" type="button" aria-label="Kartani yopish"><span class="material-symbols-outlined">close</span></button>
+          <a class="preview-photo" href="#" aria-label="Toshkent City e'lonini ko'rish">
+            <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=500&q=80" alt="Zamonaviy 3 xonali kvartira" loading="lazy">
+            <span class="badge"><span class="material-symbols-outlined" style="font-size:13px">verified</span>Sotuv</span>
+          </a>
+          <div class="preview-copy">
+            <div>
+              <div><span class="preview-price">85 000 $</span> <span class="price-per-meter">988 $/m²</span></div>
+              <h1 class="preview-title">Toshkent City, 3 xonali</h1>
+              <div class="preview-place"><span class="material-symbols-outlined">location_on</span><span class="truncate">Shayxontohur tumani</span></div>
+            </div>
+            <div class="preview-specs"><span><span class="material-symbols-outlined" style="font-size:14px">bed</span>3 xona</span><span><span class="material-symbols-outlined" style="font-size:14px">square_foot</span>86 m²</span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Pastki navigatsiya">
+      <a href="/"><span class="material-symbols-outlined">home</span><span>Bosh</span></a>
+      <a href="/search.html"><span class="material-symbols-outlined">search</span><span>Qidiruv</span></a>
+      <a class="create" href="/listings/create" aria-label="E'lon qo'shish"><span class="create-circle"><span class="material-symbols-outlined">add</span></span><span>E&apos;lon</span></a>
+      <a class="active" href="/map.html" aria-current="page"><span class="material-symbols-outlined">map</span><span>Xarita</span></a>
+      <a href="/profile.html"><span class="material-symbols-outlined">person</span><span>Profil</span></a>
+    </nav>
+
+    <script>
+      const preview = document.querySelector("#propertyPreviewCard");
+      const mapMessage = document.querySelector("#mapMessage");
+      let messageTimer;
+
+      document.querySelector("#dismissCard").addEventListener("click", () => preview.classList.add("is-hidden"));
+      document.querySelectorAll(".map-pin").forEach((pin) => {
+        pin.addEventListener("click", () => {
+          document.querySelectorAll(".map-pin").forEach((item) => {
+            const active = item === pin;
+            item.classList.toggle("selected", active);
+            item.setAttribute("aria-pressed", String(active));
+          });
+          preview.classList.remove("is-hidden");
+        });
+      });
+      document.querySelectorAll("[data-map-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          mapMessage.textContent = button.dataset.mapAction === "locate" ? "Joylashuv aniqlanganda xarita shu yerda markazlanadi" : "Xarita boshqaruvi keyinchalik ulanadi";
+          mapMessage.classList.add("visible");
+          window.clearTimeout(messageTimer);
+          messageTimer = window.setTimeout(() => mapMessage.classList.remove("visible"), 2200);
+        });
+      });
+      document.querySelectorAll(".map-categories .chip").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".map-categories .chip").forEach((chip) => chip.classList.toggle("active", chip === button));
+        });
+      });
+    </script>
+  </body>
+</html>

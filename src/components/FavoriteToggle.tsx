@@ -53,8 +53,8 @@ export default function FavoriteToggle({ listingId, initial }: Props) {
       aria-pressed={fav}
       aria-busy={busy}
       title={fav ? "Sevimlilardan olib tashlash" : "Sevimlilarga qo'shish"}
-      className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-700 active:scale-90 disabled:cursor-wait ${
-        fav ? "bg-white text-red-500 shadow-lg" : "bg-black/40 text-white hover:bg-black/60"
+      className={`flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 active:scale-90 disabled:cursor-wait ${
+        fav ? "bg-rose-50 text-rose-600 shadow-sm" : "bg-white/90 text-slate-600 shadow-sm hover:bg-white"
       }`}
     >
       {busy ? (

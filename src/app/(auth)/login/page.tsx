@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Home } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import LoginForm from '@/components/auth/LoginForm';
+import Logo from '@/components/ui/Logo';
 
 export const metadata = {
   title: 'Kirish | Olsot Market',
@@ -14,12 +14,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-white/30 pointer-events-none" />
       <div className="relative p-6 md:p-8">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-500 shadow-[0_8px_24px_rgba(10,124,78,0.35)]">
-            <Home className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-600 bg-clip-text text-transparent">
-            Olsot Market
-          </h1>
+          <div className="mb-3 flex justify-center"><Logo size="lg" /></div>
           <p className="text-gray-700 mt-1 text-base font-medium">Akkauntingizga kiring</p>
         </div>
         <LoginForm />

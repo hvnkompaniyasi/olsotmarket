@@ -32,7 +32,19 @@ export default function LoginForm() {
       if (result?.error) {
         setError("Email yoki parol noto'g'ri");
       } else {
-        router.push('/');
+        const callbackUrl = new URLSearchParams(window.location.search).get('callbackUrl');
+        let destination = '/';
+        if (
+          callbackUrl?.startsWith('/') &&
+          !callbackUrl.startsWith('//') &&
+          !callbackUrl.startsWith('/\\')
+        ) {
+          const candidate = new URL(callbackUrl, window.location.origin);
+          if (candidate.origin === window.location.origin) {
+            destination = `${candidate.pathname}${candidate.search}${candidate.hash}`;
+          }
+        }
+        router.push(destination);
         router.refresh();
       }
     } catch {
