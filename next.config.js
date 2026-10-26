@@ -17,6 +17,50 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "@base-ui/react"],
   },
+  webpack(config) {
+    if (config.optimization.minimizer) {
+      const workerExclude = /maplibre-gl-worker(?:\.[^/]+)?\.mjs$/
+
+      config.optimization.minimizer = config.optimization.minimizer.map((plugin) => {
+        if (plugin.constructor.name === "TerserPlugin" && plugin.options) {
+          const currentExclude = plugin.options.exclude
+          plugin.options.exclude = currentExclude
+            ? Array.isArray(currentExclude)
+              ? [...currentExclude, workerExclude]
+              : [currentExclude, workerExclude]
+            : workerExclude
+        }
+        return plugin
+      })
+
+      config.plugins.push({
+        apply(compiler) {
+          compiler.hooks.compilation.tap("ExcludeMapLibreWorkerFromTerser", (compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: "ExcludeMapLibreWorkerFromTerser",
+                stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE - 1,
+              },
+              () => {
+                for (const filename of Object.keys(compilation.assets)) {
+                  if (workerExclude.test(filename)) {
+                    const asset = compilation.getAsset(filename)
+                    if (asset) {
+                      compilation.updateAsset(filename, asset.source, {
+                        ...asset.info,
+                        minimized: true,
+                      })
+                    }
+                  }
+                }
+              }
+            )
+          })
+        },
+      })
+    }
+    return config
+  },
   async redirects() {
     return [
       {
