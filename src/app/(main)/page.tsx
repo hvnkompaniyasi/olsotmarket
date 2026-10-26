@@ -56,28 +56,45 @@ const cardSelect = {
 } as const
 
 export default async function HomePage({ searchParams }: HomePageProps) {
+  const query = getParam(searchParams.q)
   const type = getParam(searchParams.type)
   const category = getParam(searchParams.category)
   const region = getParam(searchParams.region)
   const district = getParam(searchParams.district)
   const minPrice = parsePrice(getParam(searchParams.minPrice))
   const maxPrice = parsePrice(getParam(searchParams.maxPrice))
+  const rooms = getParam(searchParams.rooms)
+  const sortBy = getParam(searchParams.sortBy)
 
   const where: Prisma.ListingWhereInput = { status: "ACTIVE" }
   if (type && TYPE_IDS.has(type)) where.type = type as ListingType
   if (category && CATEGORY_IDS.has(category)) where.category = category as PropertyCategory
   if (region) where.region = region
   if (district) where.district = district
+  if (rooms === "4+") where.rooms = { gte: 4 }
+  else if (["1", "2", "3"].includes(rooms)) where.rooms = Number(rooms)
+  if (query) {
+    where.OR = ["title", "description", "address", "region", "district"].map((field) => ({
+      [field]: { contains: query, mode: "insensitive" },
+    }))
+  }
 
   const priceFilter: Prisma.FloatFilter = {}
   if (minPrice !== undefined) priceFilter.gte = minPrice
   if (maxPrice !== undefined) priceFilter.lte = maxPrice
   if (minPrice !== undefined || maxPrice !== undefined) where.price = priceFilter
 
+  const orderBy: Prisma.ListingOrderByWithRelationInput[] =
+    sortBy === "price-asc"
+      ? [{ price: "asc" }]
+      : sortBy === "price-desc"
+        ? [{ price: "desc" }]
+        : [{ isPremium: "desc" }, { createdAt: "desc" }]
+
   const [listings, total] = await Promise.all([
     prisma.listing.findMany({
       where,
-      orderBy: [{ isPremium: "desc" }, { createdAt: "desc" }],
+      orderBy,
       take: HOME_LIMIT,
       select: cardSelect,
     }),
@@ -85,10 +102,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   ])
 
   const queryParams = new URLSearchParams()
+  if (query) queryParams.set("q", query)
   if (type && TYPE_IDS.has(type)) queryParams.set("type", type)
   if (category && CATEGORY_IDS.has(category)) queryParams.set("category", category)
   if (region) queryParams.set("region", region)
   if (district) queryParams.set("district", district)
+  if (["1", "2", "3", "4+"].includes(rooms)) queryParams.set("rooms", rooms)
+  if (sortBy === "price-asc" || sortBy === "price-desc") queryParams.set("sortBy", sortBy)
   if (minPrice !== undefined) queryParams.set("minPrice", String(minPrice))
   if (maxPrice !== undefined) queryParams.set("maxPrice", String(maxPrice))
   const queryString = queryParams.toString()

@@ -1,14 +1,16 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Home, Camera, Maximize } from "lucide-react";
+import { type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, Home, Camera } from "lucide-react";
 
 interface ListingGalleryProps {
   images: string[];
   title: string;
+  toolbar?: ReactNode;
 }
 
-export default function ListingGallery({ images, title }: ListingGalleryProps) {
+export default function ListingGallery({ images, title, toolbar }: ListingGalleryProps) {
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -74,7 +76,7 @@ export default function ListingGallery({ images, title }: ListingGalleryProps) {
     <>
       {/* ===== ASOSIY GALEREYA ===== */}
       <div
-        className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900"
+        className="relative aspect-[1.23] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900 sm:aspect-[16/8]"
         role="region"
         aria-label={`${title} rasmlar galereyasi`}
         onTouchStart={(event) => { touchX.current = event.touches[0].clientX }}
@@ -95,25 +97,19 @@ export default function ListingGallery({ images, title }: ListingGalleryProps) {
           fill
           priority
           sizes="100vw"
-          className="object-cover select-none [touch-action:pan-y]"
+          onClick={() => setLightbox(true)}
+          className="cursor-zoom-in select-none object-cover [touch-action:pan-y]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/25 pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
 
-        {/* Yuqori o'ng: counter + zoom (kartochka ostida qolmaydi!) */}
-        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
           {count > 1 && (
-            <span className="glass-pill px-2.5 py-2 rounded-full text-[11px] font-bold text-white flex items-center gap-1.5 shadow-lg">
-              <Camera className="h-3 w-3" /> {index + 1}/{count}
+            <span className="glass-pill flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold text-white shadow-lg">
+              <Camera className="h-3 w-3" /> {index + 1} / {count}
             </span>
           )}
-          <button
-            onClick={() => setLightbox(true)}
-            className="glass-pill flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            aria-label="To'liq ochish"
-          >
-            <Maximize className="h-4 w-4" />
-          </button>
         </div>
+        {toolbar}
 
         {/* Nav arrows */}
         {count > 1 && (

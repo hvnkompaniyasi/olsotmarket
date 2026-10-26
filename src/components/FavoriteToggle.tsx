@@ -18,24 +18,40 @@ export default function FavoriteToggle({ listingId, initial }: Props) {
   const [error, setError] = useState("")
 
   const toggle = async () => {
+    // Agar jarayon ketayotgan bo'lsa, qayta bosishni bloklaymiz
     if (busy) return
+    
+    // Agar foydalanuvchi tizimga kirmagan bo'lsa, loginga yuboramiz
     if (!session) {
       router.push(`/login?callbackUrl=/listing/${listingId}`)
       return
     }
+
     const prev = fav
-    setFav(!prev)
+    setFav(!prev) // Optimistic Update (darhol UI ni o'zgartiramiz)
     setBusy(true)
     setError("")
+
     try {
       const res = await fetch("/api/favorites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ listingId }),
       })
+
+      const data = await res.json()
+
       if (!res.ok) {
+        // Agar xatolik bo'lsa, UI ni orqaga qaytaramiz
         setFav(prev)
-        setError("Sevimlilar ro'yxatini yangilab bo'lmadi.")
+        setError(data.error || "Xatolik yuz berdi.")
+      } else {
+        // Serverdan qaytgan javobga qarab holatni tasdiqlaymiz (Sync)
+        if (data.action === "added") setFav(true)
+        if (data.action === "removed") setFav(false)
+        
+        // Sahifadagi boshqa komponentlar (masalan, saqlanganlar ro'yxati) yangilanishi uchun
+        router.refresh()
       }
     } catch {
       setFav(prev)

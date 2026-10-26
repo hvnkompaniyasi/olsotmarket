@@ -1,62 +1,62 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { type FormEvent, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Home, MapPin, RotateCcw, Search, Wallet } from "lucide-react"
-import { DEAL_TYPES, PROPERTY_CATEGORIES, REGIONS, getDistricts } from "@/lib/locations"
-
-const FILTER_KEYS = ["type", "category", "region", "district", "minPrice", "maxPrice"] as const
-
-type FilterKey = (typeof FILTER_KEYS)[number]
-type FilterValues = Record<FilterKey, string>
-
-const EMPTY_FILTERS: FilterValues = {
-  type: "",
-  category: "",
-  region: "",
-  district: "",
-  minPrice: "",
-  maxPrice: "",
-}
+import { Filter, RotateCcw, Search } from "lucide-react"
+import SearchFilterFields from "@/components/SearchFilterFields"
+import SearchFilterOptions from "@/components/SearchFilterOptions"
+import {
+  EMPTY_FILTERS,
+  FILTER_KEYS,
+  type FilterKey,
+  type FilterValues,
+} from "@/components/search-filter-types"
 
 function readFilters(params: URLSearchParams): FilterValues {
   return {
+    q: params.get("q") ?? "",
     type: params.get("type") ?? "",
     category: params.get("category") ?? "",
     region: params.get("region") ?? "",
     district: params.get("district") ?? "",
     minPrice: params.get("minPrice") ?? "",
     maxPrice: params.get("maxPrice") ?? "",
+    rooms: params.get("rooms") ?? "",
+    sortBy: params.get("sortBy") ?? "newest",
   }
 }
-
-const selectClass =
-  "w-full h-11 pl-10 pr-8 bg-white/90 dark:bg-zinc-900 border-2 border-white/70 dark:border-zinc-700 rounded-xl text-sm font-medium text-gray-800 dark:text-gray-100 outline-none appearance-none cursor-pointer focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all"
-
-const inputClass =
-  "w-full h-11 pl-10 pr-3 bg-white/90 dark:bg-zinc-900 border-2 border-white/70 dark:border-zinc-700 rounded-xl text-sm font-medium text-gray-800 dark:text-gray-100 placeholder:text-gray-400 outline-none focus:border-green-400 focus:ring-4 focus:ring-green-400/20 transition-all"
-
-const iconClass =
-  "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 pointer-events-none z-10"
 
 export default function SearchFilter() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const paramsString = searchParams.toString()
-  const [values, setValues] = useState<FilterValues>(() =>
-    readFilters(new URLSearchParams(paramsString))
-  )
+  const [draft, setDraft] = useState(() => ({
+    paramsString,
+    values: readFilters(new URLSearchParams(paramsString)),
+  }))
+  const values =
+    draft.paramsString === paramsString
+      ? draft.values
+      : readFilters(new URLSearchParams(paramsString))
 
-  useEffect(() => {
-    setValues(readFilters(new URLSearchParams(paramsString)))
-  }, [paramsString])
+  function updateValues(update: (current: FilterValues) => FilterValues) {
+    setDraft({ paramsString, values: update(values) })
+  }
+
+  function setField(key: FilterKey, value: string) {
+    updateValues((current) => ({ ...current, [key]: value }))
+  }
+
+  function setRegion(value: string) {
+    updateValues((current) => ({ ...current, region: value, district: "" }))
+  }
 
   function apply(next: FilterValues) {
     const params = new URLSearchParams(paramsString)
     FILTER_KEYS.forEach((key) => {
       const value = next[key].trim()
-      if (value) params.set(key, value)
+      if (value && !(key === "sortBy" && value === "newest")) params.set(key, value)
       else params.delete(key)
     })
     params.delete("page")
@@ -64,161 +64,70 @@ export default function SearchFilter() {
     router.push(query ? `${pathname}?${query}` : pathname)
   }
 
-  function setField(key: FilterKey, value: string) {
-    setValues((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const next = { ...values }
     if (next.minPrice && next.maxPrice && Number(next.minPrice) > Number(next.maxPrice)) {
-      const min = next.minPrice
-      next.minPrice = next.maxPrice
-      next.maxPrice = min
+      ;[next.minPrice, next.maxPrice] = [next.maxPrice, next.minPrice]
     }
-    setValues(next)
+    updateValues(() => next)
     apply(next)
   }
 
   function reset() {
-    setValues(EMPTY_FILTERS)
+    updateValues(() => EMPTY_FILTERS)
     apply(EMPTY_FILTERS)
   }
 
-  const activeCount = FILTER_KEYS.filter((key) => values[key].trim() !== "").length
+  const activeCount = FILTER_KEYS.filter(
+    (key) => values[key].trim() && !(key === "sortBy" && values[key] === "newest")
+  ).length
 
   return (
     <section className="pb-6">
       <form
         onSubmit={handleSubmit}
-        className="glass rounded-2xl p-3 sm:p-4 shadow-[0_8px_30px_rgba(10,124,78,0.08)]"
+        className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-[0_16px_40px_-18px_rgba(15,23,42,0.22)]"
       >
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <div className="relative">
-            <Home className={iconClass} />
-            <select
-              aria-label="Bitim turi"
-              value={values.type}
-              onChange={(e) => setField("type", e.target.value)}
-              className={selectClass}
-            >
-              <option value="">Barcha bitimlar</option>
-              {DEAL_TYPES.map((deal) => (
-                <option key={deal.id} value={deal.id}>
-                  {deal.name}
-                </option>
-              ))}
-            </select>
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+              <Filter className="h-4 w-4" />
+            </span>
+            <h2 className="truncate text-base font-bold tracking-tight text-gray-900">
+              Qidiruv va filtr
+            </h2>
           </div>
-
-          <div className="relative">
-            <Home className={iconClass} />
-            <select
-              aria-label="Kategoriya"
-              value={values.category}
-              onChange={(e) => setField("category", e.target.value)}
-              className={selectClass}
-            >
-              <option value="">Barcha kategoriyalar</option>
-              {PROPERTY_CATEGORIES.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="relative">
-            <MapPin className={iconClass} />
-            <select
-              aria-label="Viloyat"
-              value={values.region}
-              onChange={(e) =>
-                setValues((prev) => ({ ...prev, region: e.target.value, district: "" }))
-              }
-              className={selectClass}
-            >
-              <option value="">Barcha viloyatlar</option>
-              {REGIONS.map((region) => (
-                <option key={region.id} value={region.name}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="relative">
-            <MapPin className={iconClass} />
-            <select
-              aria-label="Tuman"
-              value={values.district}
-              onChange={(e) => setField("district", e.target.value)}
-              disabled={!values.region}
-              className={`${selectClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              <option value="">
-                {values.region ? "Barcha tumanlar" : "Avval viloyat tanlang"}
-              </option>
-              {getDistricts(values.region).map((district) => (
-                <option key={district} value={district}>
-                  {district}
-                </option>
-              ))}
-            </select>
-          </div>
+          {activeCount > 0 && (
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
+              {activeCount} ta faol
+            </span>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-2.5">
-          <div className="relative">
-            <Wallet className={iconClass} />
-            <input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              aria-label="Narxdan"
-              placeholder="Narxdan (so'm)"
-              value={values.minPrice}
-              onChange={(e) => setField("minPrice", e.target.value)}
-              className={inputClass}
-            />
-          </div>
+        <div className="space-y-4 p-4 sm:p-5">
+          <SearchFilterFields values={values} setField={setField} setRegion={setRegion} />
+          <SearchFilterOptions values={values} setField={setField} />
+        </div>
 
-          <div className="relative">
-            <Wallet className={iconClass} />
-            <input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              aria-label="Narxgacha"
-              placeholder="Narxgacha (so'm)"
-              value={values.maxPrice}
-              onChange={(e) => setField("maxPrice", e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="h-11 bg-gradient-to-r from-emerald-400 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-green-400/25 transition-colors"
-          >
-            <Search className="h-4 w-4" /> Qidirish
-          </button>
-
+        <div className="flex gap-2.5 border-t border-gray-100 bg-white p-4 sm:gap-3 sm:px-5">
           <button
             type="button"
             onClick={reset}
             disabled={activeCount === 0}
-            className="h-11 bg-white/90 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center justify-center gap-2 hover:border-[#0A7C4E] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
           >
-            <RotateCcw className="h-4 w-4" /> Tozalash
+            <RotateCcw className="h-4 w-4 shrink-0" />
+            Tozalash
+          </button>
+          <button
+            type="submit"
+            className="flex min-h-12 flex-[1.5] items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-xs font-bold text-white shadow-[0_8px_20px_-8px_rgba(15,157,88,0.65)] transition hover:bg-emerald-800 active:scale-[0.98] sm:text-sm"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            Qidirish
           </button>
         </div>
-
-        {activeCount > 0 && (
-          <p className="mt-2.5 text-[11px] font-semibold text-[#0A7C4E] dark:text-emerald-400">
-            {activeCount} ta filtr faol
-          </p>
-        )}
       </form>
     </section>
   )

@@ -37,33 +37,36 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const favorite = await prisma.favorite.create({
-      data: { userId: session.user.id, listingId },
+    // 1. Avval bazadan bu e'lon saqlanganmi-yo'qmi tekshiramiz
+    const existingFavorite = await prisma.favorite.findUnique({
+      where: {
+        userId_listingId: {
+          userId: session.user.id,
+          listingId: listingId,
+        },
+      },
     })
-    return NextResponse.json({ favorite }, { status: 201 })
-  } catch (error: any) {
-    if (error.code === "P2002") {
-      return NextResponse.json({ error: "Allaqachon sevimlilar ro'yxatida" }, { status: 409 })
+
+    if (existingFavorite) {
+      // 2. Agar saqlangan bo'lsa, o'chiramiz (Unlike)
+      await prisma.favorite.delete({
+        where: {
+          userId_listingId: {
+            userId: session.user.id,
+            listingId: listingId,
+          },
+        },
+      })
+      return NextResponse.json({ success: true, action: "removed" })
+    } else {
+      // 3. Agar saqlanmagan bo'lsa, qo'shamiz (Like)
+      const favorite = await prisma.favorite.create({
+        data: { userId: session.user.id, listingId },
+      })
+      return NextResponse.json({ success: true, action: "added", favorite }, { status: 201 })
     }
-    throw error
+  } catch (error) {
+    console.error("Favorites API xatosi:", error)
+    return NextResponse.json({ error: "Server xatosi" }, { status: 500 })
   }
-}
-
-export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Auth kerak" }, { status: 401 })
-  }
-
-  const { searchParams } = new URL(req.url)
-  const listingId = searchParams.get("listingId")
-  if (!listingId) {
-    return NextResponse.json({ error: "listingId kerak" }, { status: 400 })
-  }
-
-  await prisma.favorite.deleteMany({
-    where: { userId: session.user.id, listingId },
-  })
-
-  return NextResponse.json({ success: true })
 }

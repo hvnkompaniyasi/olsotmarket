@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Toshkent City'dagi 3 xonali zamonaviy kvartira haqida batafsil ma'lumot.">
+    <title>Toshkent City, 3 xonali kvartira — Olsot Market</title>
+    <link rel="stylesheet" href="/design-system.css">
+    <style>
+      .detail-page { width: min(100%, 1120px); margin: 0 auto; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+      .gallery { position: relative; overflow: hidden; height: clamp(260px, 58vw, 520px); background: #e8eee9; }
+      .gallery-track { display: flex; width: 100%; height: 100%; transition: transform 300ms ease; touch-action: pan-y; }
+      .gallery-slide { position: relative; flex: 0 0 100%; min-width: 0; height: 100%; }
+      .gallery-slide img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .gallery-controls { position: absolute; inset: 16px 16px auto; display: flex; align-items: center; justify-content: space-between; z-index: 2; }
+      .gallery-actions { display: flex; gap: 8px; }
+      .gallery-button { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgb(255 255 255 / 60%); border-radius: 50%; background: rgb(255 255 255 / 90%); color: #26352c; box-shadow: var(--shadow-card); cursor: pointer; backdrop-filter: blur(12px); }
+      .gallery-button:hover { color: var(--primary); }
+      .gallery-button .material-symbols-outlined { font-size: 21px; }
+      .gallery-badges { position: absolute; bottom: 16px; left: 16px; display: flex; gap: 7px; }
+      .gallery-badge { padding: 5px 9px; border-radius: 7px; background: rgb(0 106 57 / 90%); color: #fff; font-size: 11px; font-weight: 700; }
+      .gallery-badge.vip { background: #d99013; }
+      .gallery-counter { position: absolute; right: 16px; bottom: 16px; padding: 6px 10px; border-radius: 99px; background: rgb(20 27 43 / 70%); color: #fff; font-size: 12px; font-weight: 600; }
+      .gallery-arrow { position: absolute; top: 50%; z-index: 2; display: grid; width: 40px; height: 40px; place-items: center; transform: translateY(-50%); border: 0; border-radius: 50%; background: rgb(255 255 255 / 88%); color: var(--ink); cursor: pointer; box-shadow: var(--shadow-card); }
+      .gallery-arrow.prev { left: 12px; }
+      .gallery-arrow.next { right: 12px; }
+      .detail-content { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.8fr); gap: 18px; padding: 20px; }
+      .detail-main, .detail-aside { display: flex; min-width: 0; flex-direction: column; gap: 14px; }
+      .detail-card { min-width: 0; padding: 18px; border: 1px solid #e9eee9; border-radius: 18px; background: #fff; box-shadow: var(--shadow-card); }
+      .price-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+      .detail-price { color: var(--primary); font-size: clamp(25px, 6vw, 32px); font-weight: 800; letter-spacing: -0.05em; }
+      .price-per-area { color: var(--ink-muted); font-size: 12px; font-weight: 500; }
+      .mortgage-pill { display: inline-flex; align-items: center; gap: 4px; padding: 5px 8px; border: 1px solid #c9ead8; border-radius: 99px; background: #effaf3; color: var(--primary); font-size: 11px; font-weight: 600; }
+      .detail-title { margin: 12px 0 8px; color: var(--ink); font-size: clamp(19px, 4vw, 24px); font-weight: 750; line-height: 1.3; letter-spacing: -0.025em; }
+      .detail-location { display: flex; align-items: flex-start; gap: 7px; color: var(--ink-muted); font-size: 13px; }
+      .detail-location .material-symbols-outlined { flex: 0 0 auto; color: var(--primary); font-size: 19px; }
+      .detail-location a { color: var(--primary); font-weight: 650; white-space: nowrap; }
+      .listing-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 11px; border-top: 1px solid #edf0ed; color: #778179; font-size: 11px; }
+      .spec-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+      .spec-card { min-width: 0; padding: 13px 6px; border: 1px solid #e9eee9; border-radius: 14px; background: #fff; text-align: center; box-shadow: var(--shadow-card); }
+      .spec-icon { display: grid; width: 34px; height: 34px; margin: 0 auto 7px; place-items: center; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
+      .spec-icon .material-symbols-outlined { font-size: 19px; }
+      .spec-value { display: block; overflow-wrap: anywhere; color: var(--ink); font-size: 12px; font-weight: 750; }
+      .spec-label { display: block; margin-top: 2px; color: #758078; font-size: 10px; }
+      .card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 12px; }
+      .card-heading h2 { margin: 0; color: var(--ink); font-size: 16px; font-weight: 750; letter-spacing: -0.02em; }
+      .utility-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .utility-card { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 8px; padding: 11px; border: 1px solid #e8eee9; border-radius: 13px; background: #f8faf8; }
+      .utility-name { display: flex; min-width: 0; align-items: center; gap: 8px; }
+      .utility-icon { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #edf7f0; color: var(--primary); }
+      .utility-icon .material-symbols-outlined { font-size: 18px; }
+      .utility-copy { min-width: 0; }
+      .utility-copy strong, .utility-copy small { display: block; overflow-wrap: anywhere; }
+      .utility-copy strong { color: var(--ink); font-size: 12px; font-weight: 650; }
+      .utility-copy small { margin-top: 1px; color: #758078; font-size: 10px; }
+      .utility-status { display: grid; width: 23px; height: 23px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #dff4e7; color: #087842; font-size: 16px; font-weight: 800; }
+      .utility-card.unavailable .utility-status { background: #fde8e8; color: #c62828; }
+      .description-text { margin: 0; color: #59655d; font-size: 13px; line-height: 1.7; }
+      .description-text.collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+      .text-action { display: inline-flex; align-items: center; margin-top: 8px; padding: 0; border: 0; background: none; color: var(--primary); font-size: 12px; font-weight: 650; cursor: pointer; }
+      .amenities-rail { display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-inline: contain; padding: 2px 1px 7px; scroll-snap-type: x proximity; }
+      .amenities-rail::-webkit-scrollbar { display: none; }
+      .amenities-rail { -ms-overflow-style: none; scrollbar-width: none; }
+      .amenity-chip { display: inline-flex; min-height: 38px; flex: 0 0 auto; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid #e5ebe6; border-radius: 11px; background: #f8faf8; color: #38453c; font-size: 12px; font-weight: 550; scroll-snap-align: start; white-space: nowrap; }
+      .amenity-chip .material-symbols-outlined { color: var(--primary); font-size: 18px; }
+      .map-preview { position: relative; overflow: hidden; min-height: 180px; border: 1px solid #e3e9e4; border-radius: 14px; background: linear-gradient(135deg, #dcebe0, #f4f2e6); }
+      .map-preview::before, .map-preview::after { position: absolute; inset: 0; content: ""; background: repeating-linear-gradient(35deg, transparent 0 32px, rgb(255 255 255 / 90%) 33px 38px, transparent 39px 70px); }
+      .map-preview::after { transform: rotate(90deg) scale(1.4); opacity: .65; }
+      .map-marker { position: absolute; z-index: 1; top: 50%; left: 50%; display: grid; width: 42px; height: 42px; transform: translate(-50%, -50%); place-items: center; border: 3px solid #fff; border-radius: 50% 50% 50% 4px; background: var(--primary); color: #fff; box-shadow: 0 5px 15px rgb(0 0 0 / 20%); rotate: -45deg; }
+      .map-marker .material-symbols-outlined { rotate: 45deg; }
+      .map-open { position: absolute; z-index: 2; right: 10px; bottom: 10px; padding: 8px 11px; border: 1px solid #e5ebe6; border-radius: 10px; background: rgb(255 255 255 / 94%); color: var(--primary); font-size: 11px; font-weight: 650; }
+      .seller-row { display: flex; align-items: center; gap: 11px; }
+      .seller-avatar { position: relative; display: grid; width: 48px; height: 48px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--primary); color: #fff; font-size: 18px; font-weight: 750; }
+      .seller-avatar::after { position: absolute; right: -1px; bottom: -1px; display: grid; width: 18px; height: 18px; place-items: center; border: 2px solid #fff; border-radius: 50%; background: var(--primary); color: #fff; content: "✓"; font-size: 10px; }
+      .seller-copy { min-width: 0; flex: 1; }
+      .seller-name { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--ink); font-size: 13px; font-weight: 700; }
+      .verified-label { padding: 2px 6px; border: 1px solid #d7eee0; border-radius: 5px; background: #f0faf3; color: var(--primary); font-size: 9px; font-weight: 600; }
+      .seller-copy p { margin: 3px 0 0; color: #758078; font-size: 11px; line-height: 1.45; }
+      .seller-link { color: #758078; font-size: 22px; }
+      .sticky-actions { position: fixed; z-index: 80; right: 0; bottom: 0; left: 0; display: flex; justify-content: center; gap: 10px; padding: 11px 16px calc(11px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #e8ece8; background: rgb(255 255 255 / 94%); box-shadow: 0 -5px 20px rgb(17 24 39 / 7%); backdrop-filter: blur(16px); }
+      .sticky-actions a { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 13px; font-size: 13px; font-weight: 700; }
+      .message-action { flex: 1; max-width: 300px; border: 1px solid #b9dfc8; background: #eff9f2; color: var(--primary); }
+      .call-action { flex: 1.35; max-width: 380px; background: var(--primary); color: #fff; box-shadow: 0 7px 18px rgb(0 106 57 / 22%); }
+      .sticky-actions .material-symbols-outlined { font-size: 19px; }
+      @media (max-width: 700px) {
+        .detail-page { padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)); }
+        .gallery { height: min(82vw, 380px); min-height: 260px; }
+        .detail-content { grid-template-columns: minmax(0, 1fr); gap: 13px; padding: 14px 14px 20px; }
+        .detail-main, .detail-aside { gap: 13px; }
+        .detail-card { padding: 15px; }
+        .spec-grid { gap: 7px; }
+        .spec-card { padding: 11px 4px; }
+        .utility-grid { gap: 8px; }
+      }
+      @media (min-width: 701px) {
+        .gallery { margin: 18px 20px 0; border-radius: 20px; }
+        .detail-aside { align-self: start; }
+        .sticky-actions { bottom: 16px; right: 20px; left: auto; width: min(430px, calc(100% - 40px)); padding: 10px; border: 1px solid #e8ece8; border-radius: 18px; }
+      }
+      @media (max-width: 360px) {
+        .utility-card { padding: 9px 7px; gap: 5px; }
+        .utility-name { gap: 5px; }
+        .utility-icon { width: 28px; height: 28px; }
+        .utility-copy strong { font-size: 11px; }
+        .sticky-actions { gap: 7px; padding-right: 10px; padding-left: 10px; }
+        .sticky-actions a { gap: 5px; padding: 0 9px; font-size: 12px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="detail-page">
+      <section class="gallery" aria-label="E'lon rasmlari" data-gallery>
+        <div class="gallery-track" data-gallery-track>
+          <div class="gallery-slide"><img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85" alt="Zamonaviy kvartiraning yorug' mehmonxonasi"></div>
+          <div class="gallery-slide"><img src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1600&q=85" alt="Kvartiraning zamonaviy oshxonasi" loading="lazy"></div>
+          <div class="gallery-slide"><img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85&sat=-20" alt="Kvartira interyerining boshqa ko'rinishi" loading="lazy"></div>
+          <div class="gallery-slide"><img src="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1600&q=85" alt="Kvartiraning yotoq xonasi" loading="lazy"></div>
+        </div>
+        <div class="gallery-controls">
+          <button class="gallery-button" type="button" aria-label="Orqaga qaytish" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+          <div class="gallery-actions">
+            <button class="gallery-button" type="button" aria-label="Ulashish" data-share><span class="material-symbols-outlined">ios_share</span></button>
+            <button class="gallery-button" type="button" aria-label="Sevimlilarga qo'shish" aria-pressed="false" data-favorite><span class="material-symbols-outlined">favorite</span></button>
+          </div>
+        </div>
+        <button class="gallery-arrow prev" type="button" aria-label="Oldingi rasm" data-gallery-prev><span class="material-symbols-outlined">chevron_left</span></button>
+        <button class="gallery-arrow next" type="button" aria-label="Keyingi rasm" data-gallery-next><span class="material-symbols-outlined">chevron_right</span></button>
+        <div class="gallery-badges"><span class="gallery-badge">Yangi bino</span><span class="gallery-badge vip">VIP</span></div>
+        <div class="gallery-counter" aria-live="polite"><span data-gallery-current>1</span> / <span data-gallery-total>4</span></div>
+      </section>
+
+      <main class="detail-content">
+        <div class="detail-main">
+          <section class="detail-card" aria-labelledby="listing-title">
+            <div class="price-line">
+              <strong class="detail-price">85 000 $</strong>
+              <span class="price-per-area">988 $/m²</span>
+              <span class="mortgage-pill"><span aria-hidden="true">✓</span> Ipoteka mumkin</span>
+            </div>
+            <h1 class="detail-title" id="listing-title">Toshkent City, 3 xonali zamonaviy kvartira</h1>
+            <div class="detail-location">
+              <span class="material-symbols-outlined" aria-hidden="true">location_on</span>
+              <span>Toshkent sh., Shayxontohur tumani, Botir Zokirov ko'chasi —
+                <a href="#xarita">Xaritada ko'rish</a>
+              </span>
+            </div>
+            <div class="listing-meta"><span>Bugun, 10:45 da joylashtirildi</span><span>ID: #48291</span></div>
+          </section>
+
+          <section class="spec-grid" aria-label="Uy haqida asosiy ma'lumotlar">
+            <div class="spec-card"><span class="spec-icon"><span class="material-symbols-outlined">bed</span></span><strong class="spec-value">3 xona</strong><span class="spec-label">Xonalar</span></div>
+            <div class="spec-card"><span class="spec-icon"><span class="material-symbols-outlined">square_foot</span></span><strong class="spec-value">86 m²</strong><span class="spec-label">Maydoni</span></div>
+            <div class="spec-card"><span class="spec-icon"><span class="material-symbols-outlined">apartment</span></span><strong class="spec-value">7 / 16</strong><span class="spec-label">Qavat</span></div>
+            <div class="spec-card"><span class="spec-icon"><span class="material-symbols-outlined">auto_awesome</span></span><strong class="spec-value">Yevro</strong><span class="spec-label">Ta'mir</span></div>
+          </section>
+
+          <section class="detail-card" aria-labelledby="utilities-title">
+            <div class="card-heading"><h2 id="utilities-title">Kommunal xizmatlar</h2><span class="verified-label">Holati ko'rsatilgan</span></div>
+            <div class="utility-grid">
+              <div class="utility-card">
+                <div class="utility-name"><span class="utility-icon"><span class="material-symbols-outlined">local_fire_department</span></span><span class="utility-copy"><strong>Tabiiy gaz</strong><small>Mavjud</small></span></div>
+                <span class="utility-status" role="img" aria-label="Bor">✓</span>
+              </div>
+              <div class="utility-card">
+                <div class="utility-name"><span class="utility-icon"><span class="material-symbols-outlined">water_drop</span></span><span class="utility-copy"><strong>Suv</strong><small>Mavjud</small></span></div>
+                <span class="utility-status" role="img" aria-label="Bor">✓</span>
+              </div>
+              <div class="utility-card">
+                <div class="utility-name"><span class="utility-icon"><span class="material-symbols-outlined">bolt</span></span><span class="utility-copy"><strong>Elektr toki</strong><small>Mavjud</small></span></div>
+                <span class="utility-status" role="img" aria-label="Bor">✓</span>
+              </div>
+              <div class="utility-card unavailable">
+                <div class="utility-name"><span class="utility-icon"><span class="material-symbols-outlined">mode_heat</span></span><span class="utility-copy"><strong>Markaziy isitish</strong><small>Mavjud emas</small></span></div>
+                <span class="utility-status" role="img" aria-label="Yo'q">✗</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="detail-card" aria-labelledby="description-title">
+            <div class="card-heading"><h2 id="description-title">Tavsif</h2></div>
+            <p class="description-text collapsed" data-description>
+              Toshkent City Park yaqinida joylashgan premium darajadagi 3 xonali kvartira. Barcha zamonaviy sharoitlarga ega, to'liq jihozlangan qimmatbaho mebel va zamonaviy maishiy texnikalar bilan birga sotiladi. Keng vitrina derazalar, chiroyli shahar manzarasi va 24/7 qo'riqlash tizimi.
+            </p>
+            <button class="text-action" type="button" aria-expanded="false" data-description-toggle>
+              Barchasini ko'rish <span class="material-symbols-outlined">expand_more</span>
+            </button>
+          </section>
+
+          <section class="detail-card" aria-labelledby="amenities-title">
+            <div class="card-heading"><h2 id="amenities-title">Qulayliklar</h2><span class="muted" style="font-size:11px">Yon tomonga suring</span></div>
+            <div class="amenities-rail" aria-label="Qulayliklar ro'yxati">
+              <span class="amenity-chip"><span class="material-symbols-outlined">local_parking</span>Yerosti parkingi</span>
+              <span class="amenity-chip"><span class="material-symbols-outlined">chair</span>To'liq mebel</span>
+              <span class="amenity-chip"><span class="material-symbols-outlined">wifi</span>Tezkor Wi-Fi</span>
+              <span class="amenity-chip"><span class="material-symbols-outlined">ac_unit</span>Konditsioner</span>
+              <span class="amenity-chip"><span class="material-symbols-outlined">verified_user</span>24/7 qo'riqlash</span>
+              <span class="amenity-chip"><span class="material-symbols-outlined">elevator</span>Tezyurar lift</span>
+              <span class="amenity-chip"><span class="material-symbols-outlined">pool</span>Fitnes va basseyn</span>
+            </div>
+          </section>
+        </div>
+
+        <aside class="detail-aside">
+          <section class="detail-card" id="xarita" aria-labelledby="map-title">
+            <div class="card-heading"><h2 id="map-title">Joylashuvi xaritada</h2><span class="muted" style="font-size:11px">Shayxontohur</span></div>
+            <div class="map-preview" role="img" aria-label="Shayxontohur tumani xarita ko'rinishi">
+              <span class="map-marker"><span class="material-symbols-outlined">location_on</span></span>
+              <a class="map-open" href="/map.html">Xaritada ochish →</a>
+            </div>
+          </section>
+          <section class="detail-card" aria-label="E'lon beruvchi">
+            <div class="seller-row">
+              <div class="seller-avatar" aria-hidden="true">S</div>
+              <div class="seller-copy">
+                <div class="seller-name">Sardor Alimov <span class="verified-label">Tasdiqlangan</span></div>
+                <p>Mulk egasi · ★ 4.9 (24)</p>
+                <p>Saytda 2 yildan beri · 12 ta faol e'lon</p>
+              </div>
+              <a class="seller-link" href="/profile.html" aria-label="E'lon beruvchi profiliga o'tish">›</a>
+            </div>
+          </section>
+        </aside>
+      </main>
+
+      <nav class="sticky-actions" aria-label="Sotuvchi bilan bog'lanish">
+        <a class="message-action" href="/messages"><span class="material-symbols-outlined">chat</span>Xabar yozish</a>
+        <a class="call-action" href="tel:+998901234567"><span class="material-symbols-outlined">call</span>Qo'ng'iroq qilish</a>
+      </nav>
+    </div>
+
+    <script>
+      (() => {
+        const gallery = document.querySelector("[data-gallery]")
+        const track = document.querySelector("[data-gallery-track]")
+        const slides = Array.from(document.querySelectorAll(".gallery-slide"))
+        const currentLabel = document.querySelector("[data-gallery-current]")
+        const totalLabel = document.querySelector("[data-gallery-total]")
+        if (!gallery || !track || !currentLabel || !totalLabel || slides.length === 0) return
+
+        let current = 0
+        let touchStartX = 0
+        totalLabel.textContent = String(slides.length)
+
+        const showSlide = (index) => {
+          current = (index + slides.length) % slides.length
+          track.style.transform = `translateX(-${current * 100}%)`
+          currentLabel.textContent = String(current + 1)
+        }
+
+        gallery.querySelector("[data-gallery-prev]")?.addEventListener("click", () => showSlide(current - 1))
+        gallery.querySelector("[data-gallery-next]")?.addEventListener("click", () => showSlide(current + 1))
+        gallery.addEventListener("touchstart", (event) => {
+          touchStartX = event.changedTouches[0]?.clientX ?? 0
+        }, { passive: true })
+        gallery.addEventListener("touchend", (event) => {
+          const touchEndX = event.changedTouches[0]?.clientX ?? touchStartX
+          const delta = touchEndX - touchStartX
+          if (Math.abs(delta) > 45) showSlide(current + (delta < 0 ? 1 : -1))
+        }, { passive: true })
+
+        document.querySelector("[data-description-toggle]")?.addEventListener("click", (event) => {
+          const button = event.currentTarget
+          const description = document.querySelector("[data-description]")
+          if (!description || !(button instanceof HTMLButtonElement)) return
+          const expanded = button.getAttribute("aria-expanded") !== "true"
+          description.classList.toggle("collapsed", !expanded)
+          button.setAttribute("aria-expanded", String(expanded))
+          button.firstChild.textContent = expanded ? "Qisqartirish " : "Barchasini ko'rish "
+          button.querySelector(".material-symbols-outlined").textContent = expanded ? "expand_less" : "expand_more"
+        })
+
+        document.querySelector("[data-favorite]")?.addEventListener("click", (event) => {
+          const button = event.currentTarget
+          if (!(button instanceof HTMLButtonElement)) return
+          const active = button.getAttribute("aria-pressed") !== "true"
+          button.setAttribute("aria-pressed", String(active))
+          button.style.color = active ? "#c62828" : ""
+          button.querySelector(".material-symbols-outlined").style.fontVariationSettings = active
+            ? "'FILL' 1"
+            : "'FILL' 0"
+        })
+
+        document.querySelector("[data-share]")?.addEventListener("click", async () => {
+          if (navigator.share) {
+            await navigator.share({ title: document.title, url: window.location.href })
+          } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(window.location.href)
+          }
+        })
+      })()
+    </script>
+  </body>
+</html>

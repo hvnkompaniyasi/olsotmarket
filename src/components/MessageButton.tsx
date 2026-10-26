@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { MessageSquare, Loader2 } from "lucide-react"
 
-export default function MessageButton({ listingId }: { listingId: string }) {
+interface MessageButtonProps {
+  listingId: string
+  className?: string
+}
+
+export default function MessageButton({ listingId, className }: MessageButtonProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -37,7 +42,7 @@ export default function MessageButton({ listingId }: { listingId: string }) {
     <button
       onClick={start}
       disabled={loading}
-      className="h-12 w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition-all shadow-lg shadow-blue-500/25"
+      className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-600 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-600 hover:to-cyan-700 ${className ?? ""}`}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
       Xabar yuborish

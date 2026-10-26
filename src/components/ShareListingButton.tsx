@@ -14,7 +14,13 @@ function FacebookIcon({ className }: { className?: string }) {
   )
 }
 
-export default function ShareListingButton({ title }: { title: string }) {
+interface ShareListingButtonProps {
+  title: string
+  className?: string
+  compact?: boolean
+}
+
+export default function ShareListingButton({ title, className, compact = false }: ShareListingButtonProps) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -60,9 +66,11 @@ export default function ShareListingButton({ title }: { title: string }) {
     <>
       <button
         onClick={onClick}
-        className="h-12 w-full bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-200 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm hover:border-[#0A7C4E] transition-colors"
+        aria-label="Ulashish"
+        className={`${compact ? "flex h-10 w-10 items-center justify-center rounded-full bg-white/90 p-0 shadow-md backdrop-blur-md" : "flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 font-semibold text-sm text-gray-700 hover:border-[#0A7C4E] dark:border-zinc-700 dark:bg-zinc-800 dark:text-gray-200"} transition-colors ${className ?? ""}`}
       >
-        <Share2 className="h-4 w-4" /> Ulashish
+        <Share2 className="h-4 w-4" />
+        {compact ? <span className="sr-only">Ulashish</span> : "Ulashish"}
       </button>
 
       {open && (
