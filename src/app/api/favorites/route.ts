@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/auth"
 import { authOptions } from "@/lib/auth-options"
 
@@ -47,20 +48,26 @@ export async function POST(req: NextRequest) {
     })
 
     if (existingFavorite) {
-      await prisma.favorite.delete({
-        where: {
-          userId_listingId: {
-            userId: session.user.id,
-            listingId: listingId,
-          },
-        },
+      await prisma.favorite.deleteMany({
+        where: { userId: session.user.id, listingId },
       })
       return NextResponse.json({ success: true, action: "removed" })
     } else {
-      const favorite = await prisma.favorite.create({
-        data: { userId: session.user.id, listingId },
-      })
-      return NextResponse.json({ success: true, action: "added", favorite }, { status: 201 })
+      try {
+        const favorite = await prisma.favorite.create({
+          data: { userId: session.user.id, listingId },
+        })
+        return NextResponse.json({ success: true, action: "added", favorite }, { status: 201 })
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+          throw error
+        }
+
+        await prisma.favorite.deleteMany({
+          where: { userId: session.user.id, listingId },
+        })
+        return NextResponse.json({ success: true, action: "removed" })
+      }
     }
   } catch (error) {
     console.error("Favorites API xatosi:", error)

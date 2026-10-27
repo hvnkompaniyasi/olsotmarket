@@ -1,7 +1,8 @@
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import { getRedisClient } from "@/lib/redis"
+import { normalizeUzbekPhone } from "@/lib/phone"
 import * as Sentry from "@sentry/nextjs"
 
 export const authOptions: NextAuthOptions = {
@@ -9,18 +10,40 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Parol", type: "password" },
+        phone: { label: "Telefon raqam", type: "tel" },
+        code: { label: "SMS kod", type: "text" },
+        name: { label: "Ism", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email va parol kerak")
+        const phone = typeof credentials?.phone === "string"
+          ? normalizeUzbekPhone(credentials.phone)
+          : null
+        const code = typeof credentials?.code === "string" ? credentials.code : ""
+        if (!phone || !/^\d{4}$/.test(code)) throw new Error("Telefon raqam yoki kod noto'g'ri")
+
+        const redis = getRedisClient()
+        if (!redis) throw new Error("OTP xizmati hozircha ishlamayapti")
+        if (redis.status === "wait") await redis.connect()
+        if (redis.status !== "ready") throw new Error("OTP xizmati hozircha ishlamayapti")
+
+        const storedCode = await redis.get(`otp:${phone}`)
+        if (storedCode !== code) throw new Error("Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
+
+        await redis.del(`otp:${phone}`)
+
+        let user = await prisma.user.findUnique({ where: { phone } })
+        if (!user) {
+          const suppliedName = typeof credentials?.name === "string" ? credentials.name.trim() : ""
+          try {
+            user = await prisma.user.create({
+              data: { name: suppliedName || "Foydalanuvchi", phone },
+            })
+          } catch {
+            user = await prisma.user.findUnique({ where: { phone } })
+            if (!user) throw new Error("Foydalanuvchi yaratilmadi")
+          }
         }
-        const email = credentials.email.trim().toLowerCase()
-        const user = await prisma.user.findUnique({ where: { email } })
-        if (!user || !user.password) throw new Error("Foydalanuvchi topilmadi")
-        const isValid = await bcrypt.compare(credentials.password, user.password)
-        if (!isValid) throw new Error("Parol noto'g'ri")
+
         return { id: user.id, email: user.email, phone: user.phone ?? undefined, name: user.name, role: user.role }
       },
     }),
@@ -32,7 +55,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.phone = user.phone
-        token.role = (user as any).role
+        token.role = user.role
       }
       return token
     },
