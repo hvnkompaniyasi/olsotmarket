@@ -9,7 +9,7 @@ import Map, {
   type MapRef,
   type MarkerDragEvent,
 } from "react-map-gl/maplibre"
-import "maplibre-gl/dist/maplibre-gl.css" // Xarita ko'rinishi uchun eng muhim qator!
+// BU YERDAGI CSS IMPORTI O'CHIRILDI
 import { MAPLIBRE_WORKER_URL } from "@/lib/maplibre-worker"
 import { X } from "lucide-react"
 
@@ -23,33 +23,11 @@ interface MapPickerProps {
   onChange: (coordinates: Coordinates) => void
   onAddressChange?: (address: string) => void
   center?: [number, number]
-  onClose: () => void // Xaritani yopish uchun
+  onClose: () => void 
 }
 
-interface NominatimAddress {
-  road?: unknown
-  pedestrian?: unknown
-  residential?: unknown
-  path?: unknown
-  street?: unknown
-  house_number?: unknown
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function getStreetAddress(value: unknown): string | null {
-  if (!isRecord(value) || !isRecord(value.address)) return null
-
-  const address = value.address as NominatimAddress
-  const road = [address.road, address.pedestrian, address.residential, address.path, address.street]
-    .find((candidate): candidate is string => typeof candidate === "string" && Boolean(candidate.trim()))
-  if (!road) return null
-
-  const houseNumber = typeof address.house_number === "string" ? address.house_number.trim() : ""
-  return [road.trim(), houseNumber].filter(Boolean).join(" ")
-}
+// ... qolgan kodlar (isRecord, getStreetAddress, va asosiy komponent) avvalgidek qoladi ...
+// (Pastdagi kodni to'liq nusxalashingiz mumkin)
 
 export default function MapPicker({ value, onChange, onAddressChange, center, onClose }: MapPickerProps) {
   const mapRef = useRef<MapRef>(null)
@@ -96,11 +74,13 @@ export default function MapPicker({ value, onChange, onAddressChange, center, on
         )
         if (!response.ok) throw new Error(`Nominatim API status ${response.status}`)
 
-        const address = getStreetAddress(await response.json())
+        const data = await response.json()
+        const address = data.address
         if (address) {
-          onAddressChange(address)
-        } else {
-          setGeocodingError("Bu joy uchun ko'cha manzili topilmadi")
+          const road = address.road || address.pedestrian || address.residential || address.street
+          const houseNumber = address.house_number
+          const fullAddress = [road, houseNumber].filter(Boolean).join(" ")
+          if (fullAddress) onAddressChange(fullAddress)
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -115,12 +95,10 @@ export default function MapPicker({ value, onChange, onAddressChange, center, on
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700">
-      {/* Xaritani yopish tugmasi */}
       <button
         type="button"
         onClick={onClose}
         className="absolute right-2 top-2 z-10 rounded-full bg-white/90 p-1.5 text-gray-600 shadow-md transition hover:bg-white hover:text-red-600 dark:bg-zinc-800/90 dark:text-gray-300 dark:hover:text-red-400"
-        title="Xaritani yopish"
       >
         <X className="h-5 w-5" />
       </button>
@@ -136,9 +114,7 @@ export default function MapPicker({ value, onChange, onAddressChange, center, on
         }}
         onClick={handleMapClick}
         style={{ width: "100%", height: "18rem" }}
-        aria-label="E'lon xaritasi"
       >
-        {/* Zoom +/- va Geolocation tugmalari */}
         <NavigationControl position="bottom-right" />
         <GeolocateControl position="bottom-right" />
 
@@ -154,18 +130,9 @@ export default function MapPicker({ value, onChange, onAddressChange, center, on
         )}
       </Map>
       
-      {/* Ortiqcha yozuvlar o'rniga faqat holat xabari */}
       <div className="absolute bottom-2 left-2 z-10 flex flex-col gap-1">
-        {geocoding && (
-          <span className="rounded bg-white/90 px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">
-            Manzil aniqlanmoqda...
-          </span>
-        )}
-        {geocodingError && (
-          <span className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800 shadow-sm">
-            {geocodingError}
-          </span>
-        )}
+        {geocoding && <span className="rounded bg-white/90 px-2 py-1 text-xs text-gray-700 shadow-sm">Manzil aniqlanmoqda...</span>}
+        {geocodingError && <span className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800 shadow-sm">{geocodingError}</span>}
       </div>
     </div>
   )
