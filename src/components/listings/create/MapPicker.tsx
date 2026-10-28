@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Map, {
   Marker,
+  NavigationControl,
+  GeolocateControl,
   type MapLayerMouseEvent,
   type MapRef,
   type MarkerDragEvent,
 } from "react-map-gl/maplibre"
+import "maplibre-gl/dist/maplibre-gl.css" // Xarita ko'rinishi uchun eng muhim qator!
 import { MAPLIBRE_WORKER_URL } from "@/lib/maplibre-worker"
+import { X } from "lucide-react"
 
 export interface Coordinates {
   lat: number
@@ -19,6 +23,7 @@ interface MapPickerProps {
   onChange: (coordinates: Coordinates) => void
   onAddressChange?: (address: string) => void
   center?: [number, number]
+  onClose: () => void // Xaritani yopish uchun
 }
 
 interface NominatimAddress {
@@ -46,11 +51,12 @@ function getStreetAddress(value: unknown): string | null {
   return [road.trim(), houseNumber].filter(Boolean).join(" ")
 }
 
-export default function MapPicker({ value, onChange, onAddressChange, center }: MapPickerProps) {
+export default function MapPicker({ value, onChange, onAddressChange, center, onClose }: MapPickerProps) {
   const mapRef = useRef<MapRef>(null)
   const geocodeControllerRef = useRef<AbortController | null>(null)
   const [geocoding, setGeocoding] = useState(false)
   const [geocodingError, setGeocodingError] = useState("")
+
   useEffect(() => {
     if (center && !value) {
       mapRef.current?.flyTo({ center: [center[1], center[0]], zoom: 10 })
@@ -108,7 +114,17 @@ export default function MapPicker({ value, onChange, onAddressChange, center }: 
   )
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200">
+    <div className="relative overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-700">
+      {/* Xaritani yopish tugmasi */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-2 top-2 z-10 rounded-full bg-white/90 p-1.5 text-gray-600 shadow-md transition hover:bg-white hover:text-red-600 dark:bg-zinc-800/90 dark:text-gray-300 dark:hover:text-red-400"
+        title="Xaritani yopish"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
       <Map
         ref={mapRef}
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
@@ -119,9 +135,13 @@ export default function MapPicker({ value, onChange, onAddressChange, center }: 
           zoom: value ? 14 : 6,
         }}
         onClick={handleMapClick}
-        style={{ width: "100%", height: "16rem" }}
+        style={{ width: "100%", height: "18rem" }}
         aria-label="E'lon xaritasi"
       >
+        {/* Zoom +/- va Geolocation tugmalari */}
+        <NavigationControl position="bottom-right" />
+        <GeolocateControl position="bottom-right" />
+
         {value && (
           <Marker
             longitude={value.lng}
@@ -133,16 +153,20 @@ export default function MapPicker({ value, onChange, onAddressChange, center }: 
           />
         )}
       </Map>
-      <p className="bg-white px-3 py-2 text-xs text-gray-500">
-        Xaritani bosing yoki belgini sudrab joylashuvni belgilang
-        {value && ` · ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}`}
-        {geocoding && " · Ko'cha manzili aniqlanmoqda..."}
-      </p>
-      {geocodingError && (
-        <p className="bg-white px-3 pb-2 text-xs text-amber-700" role="status">
-          {geocodingError}
-        </p>
-      )}
+      
+      {/* Ortiqcha yozuvlar o'rniga faqat holat xabari */}
+      <div className="absolute bottom-2 left-2 z-10 flex flex-col gap-1">
+        {geocoding && (
+          <span className="rounded bg-white/90 px-2 py-1 text-xs font-medium text-gray-700 shadow-sm">
+            Manzil aniqlanmoqda...
+          </span>
+        )}
+        {geocodingError && (
+          <span className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800 shadow-sm">
+            {geocodingError}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

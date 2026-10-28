@@ -31,12 +31,10 @@ export async function POST(request: NextRequest) {
 
     const code = String(randomInt(0, 10_000)).padStart(4, "0")
     await redis.set(`otp:${phone}`, code, "EX", 300)
-    console.log(`Test OTP for ${phone}: ${code}`)
 
     return NextResponse.json({
       success: true,
-      devCode: code,
-      message: "Test rejimi: Kod ekranga chiqarildi",
+      ...(process.env.NODE_ENV === "development" ? { devCode: code } : {}),
     })
   } catch (error) {
     console.error("OTP yuborish xatosi:", error)

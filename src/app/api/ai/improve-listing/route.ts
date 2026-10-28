@@ -11,8 +11,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 const improveListingSchema = z.object({
-  title: z.string().trim().min(5).max(120),
-  description: z.string().trim().min(20).max(2000),
+  title: z.string().trim().min(3).max(120),
+  description: z.string().trim().max(2000).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const copy = await improveListingCopy(parsed.data.title, parsed.data.description);
+    const copy = await improveListingCopy(parsed.data.title, parsed.data.description ?? '');
     return NextResponse.json(copy);
   } catch (error) {
     console.error('AI listing edit failed:', error);

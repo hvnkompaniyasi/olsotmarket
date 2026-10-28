@@ -11,35 +11,48 @@ export const authOptions: NextAuthOptions = {
       name: "credentials",
       credentials: {
         phone: { label: "Telefon raqam", type: "tel" },
-        code: { label: "SMS kod", type: "text" },
+        email: { label: "Email", type: "email" },
+        code: { label: "Tasdiqlash kodi", type: "text" },
         name: { label: "Ism", type: "text" },
       },
       async authorize(credentials) {
-        const phone = typeof credentials?.phone === "string"
-          ? normalizeUzbekPhone(credentials.phone)
-          : null
+        const rawPhone = typeof credentials?.phone === "string" ? credentials.phone.trim() : ""
+        const rawEmail = typeof credentials?.email === "string"
+          ? credentials.email.trim().toLowerCase()
+          : ""
+        const phone = rawPhone ? normalizeUzbekPhone(rawPhone) : null
+        const email = rawEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : null
         const code = typeof credentials?.code === "string" ? credentials.code : ""
-        if (!phone || !/^\d{4}$/.test(code)) throw new Error("Telefon raqam yoki kod noto'g'ri")
+        if (Boolean(rawPhone) === Boolean(rawEmail) || (!phone && !email) || !/^\d{4}$/.test(code)) {
+          throw new Error("Telefon raqam, email yoki kod noto'g'ri")
+        }
 
         const redis = getRedisClient()
         if (!redis) throw new Error("OTP xizmati hozircha ishlamayapti")
         if (redis.status === "wait") await redis.connect()
         if (redis.status !== "ready") throw new Error("OTP xizmati hozircha ishlamayapti")
 
-        const storedCode = await redis.get(`otp:${phone}`)
+        const otpKey = phone ? `otp:${phone}` : `otp:email:${email}`
+        const storedCode = await redis.get(otpKey)
         if (storedCode !== code) throw new Error("Tasdiqlash kodi noto'g'ri yoki muddati tugagan")
 
-        await redis.del(`otp:${phone}`)
+        await redis.del(otpKey)
 
-        let user = await prisma.user.findUnique({ where: { phone } })
+        let user = phone
+          ? await prisma.user.findUnique({ where: { phone } })
+          : await prisma.user.findUnique({ where: { email: email! } })
         if (!user) {
           const suppliedName = typeof credentials?.name === "string" ? credentials.name.trim() : ""
           try {
             user = await prisma.user.create({
-              data: { name: suppliedName || "Foydalanuvchi", phone },
+              data: phone
+                ? { name: suppliedName || "Foydalanuvchi", phone }
+                : { name: suppliedName || "Foydalanuvchi", email: email! },
             })
           } catch {
-            user = await prisma.user.findUnique({ where: { phone } })
+            user = phone
+              ? await prisma.user.findUnique({ where: { phone } })
+              : await prisma.user.findUnique({ where: { email: email! } })
             if (!user) throw new Error("Foydalanuvchi yaratilmadi")
           }
         }

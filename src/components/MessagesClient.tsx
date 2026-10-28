@@ -153,7 +153,7 @@ export default function MessagesClient() {
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-bold text-gray-800 dark:text-white truncate">{o.name || (o.phone ? `+${o.phone}` : "Foydalanuvchi")}</span>
+                          <span className="text-sm font-bold text-gray-800 dark:text-white truncate">{o.name || (o.phone || "Foydalanuvchi")}</span>
                           {last && <span className="text-[10px] text-gray-400 flex-shrink-0">{fmt(last.createdAt)}</span>}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.listing.title}</div>
@@ -193,7 +193,7 @@ export default function MessagesClient() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-gray-800 dark:text-white truncate">
-                      {other(conv).name || (other(conv).phone ? `+${other(conv).phone}` : "Foydalanuvchi")}
+                      {other(conv).name || other(conv).phone || "Foydalanuvchi"}
                     </div>
                     <Link href={`/listing/${conv.listing.id}`} className="text-xs text-green-600 dark:text-green-400 truncate block hover:underline">
                       {conv.listing.title} · ${conv.listing.price.toLocaleString("en-US")}

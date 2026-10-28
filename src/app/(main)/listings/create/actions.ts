@@ -28,6 +28,12 @@ function numberOrUndefined(value: FormDataEntryValue | null): number | undefined
   return Number(value)
 }
 
+function booleanOrUndefined(value: FormDataEntryValue | null): boolean | undefined {
+  if (value === "true") return true
+  if (value === "false") return false
+  return undefined
+}
+
 function slugPart(value: string): string {
   return value
     .toLocaleLowerCase("uz-UZ")
@@ -74,7 +80,7 @@ export async function createListingAction(
     type: text(formData.get("type")),
     category: text(formData.get("category")),
     price: numberOrUndefined(formData.get("price")),
-    currency: text(formData.get("currency")) ?? "UZS",
+    currency: text(formData.get("currency")) ?? "USD",
     region: text(formData.get("region")),
     district: text(formData.get("district")),
     address: text(formData.get("address")),
@@ -85,9 +91,9 @@ export async function createListingAction(
     floor: numberOrUndefined(formData.get("floor")),
     totalFloors: numberOrUndefined(formData.get("totalFloors")),
     renovation: text(formData.get("renovation")),
-    hasGas: formData.get("hasGas") === "on",
-    hasWater: formData.get("hasWater") === "on",
-    hasElectricity: formData.get("hasElectricity") === "on",
+    hasGas: booleanOrUndefined(formData.get("hasGas")),
+    hasWater: booleanOrUndefined(formData.get("hasWater")),
+    hasElectricity: booleanOrUndefined(formData.get("hasElectricity")),
     hasSewage: formData.get("hasSewage") === "on",
     livingArea: numberOrUndefined(formData.get("livingArea")),
     landArea: numberOrUndefined(formData.get("landArea")),

@@ -2,12 +2,12 @@ import { z } from "zod"
 
 // Listing yaratish
 export const listingSchema = z.object({
-  title: z.string().trim().min(5, "Sarlavha kamida 5 belgi").max(120, "Sarlavha 120 belgidan oshmasin"),
-  description: z.string().trim().min(20, "Tavsif kamida 20 belgi").max(2000, "Tavsif 2000 belgidan oshmasin"),
+  title: z.string().trim().min(3, "Sarlavha kamida 3 belgi").max(120, "Sarlavha 120 belgidan oshmasin"),
+  description: z.string().trim().max(2000, "Tavsif 2000 belgidan oshmasin").optional(),
   type: z.enum(["SALE", "RENT", "DAILY", "NEW_BUILDING"]),
   category: z.enum(["APARTMENT", "HOUSE", "OFFICE", "LAND", "WAREHOUSE"]),
   price: z.coerce.number().positive("Narx musbat bo'lishi kerak").max(1_000_000_000_000),
-  currency: z.enum(["UZS", "USD"]).default("UZS"),
+  currency: z.enum(["UZS", "USD"]).default("USD"),
   region: z.string().trim().min(2, "Viloyat kamida 2 belgi").max(50),
   district: z.string().trim().min(2, "Tuman kamida 2 belgi").max(50),
   address: z.string().trim().min(5, "Manzil kamida 5 belgi").max(200),
@@ -18,9 +18,9 @@ export const listingSchema = z.object({
   renovation: z.string().trim().max(80).optional(),
   floor: z.number().int().min(0).max(200).optional(),
   totalFloors: z.number().int().min(1).max(200).optional(),
-  hasGas: z.boolean().optional(),
-  hasWater: z.boolean().optional(),
-  hasElectricity: z.boolean().optional(),
+  hasGas: z.boolean(),
+  hasWater: z.boolean(),
+  hasElectricity: z.boolean(),
   hasSewage: z.boolean().optional(),
   livingArea: z.coerce.number().positive().max(100_000).optional(),
   landArea: z.coerce.number().positive().max(1_000_000).optional(),
@@ -106,4 +106,8 @@ export const RegisterSchema = z.object({
     .optional()
     .refine((v) => !v || /^\d+$/.test(v), "Telefon faqat raqamlar"),
   password: z.string().min(6, "Parol kamida 6 belgi"),
+})
+
+export const sendEmailOtpSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Email noto'g'ri").max(254),
 })
