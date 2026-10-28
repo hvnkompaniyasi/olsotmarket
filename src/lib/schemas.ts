@@ -22,6 +22,12 @@ export const listingSchema = z.object({
   hasWater: z.boolean(),
   hasElectricity: z.boolean(),
   hasSewage: z.boolean().optional(),
+  
+  // YANGI QULAYLIKLAR
+  hasWifi: z.boolean().optional(),
+  hasAirConditioner: z.boolean().optional(),
+  hasSecurity: z.boolean().optional(),
+  
   livingArea: z.coerce.number().positive().max(100_000).optional(),
   landArea: z.coerce.number().positive().max(1_000_000).optional(),
   purpose: z.string().trim().max(100).optional(),
@@ -84,6 +90,12 @@ export const EditListingSchema = z.object({
   hasWater: z.boolean().optional(),
   hasElectricity: z.boolean().optional(),
   hasSewage: z.boolean().optional(),
+  
+  // YANGI QULAYLIKLAR
+  hasWifi: z.boolean().optional(),
+  hasAirConditioner: z.boolean().optional(),
+  hasSecurity: z.boolean().optional(),
+  
   livingArea: z.number().positive().max(100_000).nullable().optional(),
   landArea: z.number().positive().max(1_000_000).nullable().optional(),
   purpose: z.string().trim().max(100).nullable().optional(),

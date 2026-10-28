@@ -27,6 +27,12 @@ type ListingTelegramDetails = {
   bathroom: number | null;
   elevator: boolean | null;
   furniture: boolean | null;
+  
+  // YANGI QULAYLIKLAR QO'SHILDI
+  hasWifi: boolean | null;
+  hasAirConditioner: boolean | null;
+  hasSecurity: boolean | null;
+  
   deposit: number | null;
   utilitiesCondition: string | null;
   hasGas: boolean;
@@ -77,6 +83,7 @@ function buildListingMessage(listing: ListingTelegramDetails): string {
       ? null
       : `<b>Qavat:</b> ${listing.floor}/${listing.totalFloors ?? '?'}`,
   ].filter((value): value is string => value !== null);
+  
   const additionalDetails = [
     listing.livingArea === null ? null : `<b>Yashash maydoni:</b> ${listing.livingArea} m²`,
     listing.landArea === null ? null : `<b>Yer maydoni:</b> ${listing.landArea} sotix`,
@@ -88,6 +95,12 @@ function buildListingMessage(listing: ListingTelegramDetails): string {
     listing.parking === null ? null : `<b>Avtoturargoh:</b> ${listing.parking ? "Bor" : "Yo'q"}`,
     listing.elevator === null ? null : `<b>Lift:</b> ${listing.elevator ? "Bor" : "Yo'q"}`,
     listing.furniture === null ? null : `<b>Mebel:</b> ${listing.furniture ? "Bor" : "Yo'q"}`,
+    
+    // YANGI QULAYLIKLAR XABARGA QO'SHILDI
+    listing.hasWifi === null ? null : `<b>Wi-Fi:</b> ${listing.hasWifi ? "Bor" : "Yo'q"}`,
+    listing.hasAirConditioner === null ? null : `<b>Konditsioner:</b> ${listing.hasAirConditioner ? "Bor" : "Yo'q"}`,
+    listing.hasSecurity === null ? null : `<b>Xavfsizlik:</b> ${listing.hasSecurity ? "Bor" : "Yo'q"}`,
+    
     listing.deposit === null ? null : `<b>Depozit:</b> ${formatPrice(listing.deposit, listing.currency)}`,
     listing.utilitiesCondition
       ? `<b>Kommunal to'lovlar sharti:</b> ${escapeHtml(listing.utilitiesCondition)}`

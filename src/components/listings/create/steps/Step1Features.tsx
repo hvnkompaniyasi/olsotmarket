@@ -68,7 +68,7 @@ export default function Step1Features(props: Props) {
               </div>
               <div role="group" className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 dark:bg-zinc-800">
                 {[{ choice: true, text: "Bor" }, { choice: false, text: "Yo'q" }].map(({ choice, text }) => (
-                  <button key={text} type="button" aria-pressed={props.hasSewage === choice} onClick={() => props.setHasSewage(prev => prev === choice ? null : choice)}
+                  <button key={text} type="button" aria-pressed={props.hasSewage === choice} onClick={() => props.setHasSewage(props.hasSewage === choice ? null : choice)}
                     className={`min-h-9 rounded-md px-2 text-xs font-semibold transition ${props.hasSewage === choice ? "bg-green-700 text-white" : "text-gray-600 hover:text-gray-900 dark:text-gray-300"}`}>
                     {text}
                   </button>

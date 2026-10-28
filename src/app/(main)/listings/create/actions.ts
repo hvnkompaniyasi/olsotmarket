@@ -105,6 +105,11 @@ export async function createListingAction(
     bathroom: numberOrUndefined(formData.get("bathroom")),
     elevator: formData.get("elevator") === "on",
     furniture: formData.get("furniture") === "on",
+    // Yangi qulayliklar
+    hasWifi: formData.get("wifi") === "on",
+    hasAirConditioner: formData.get("airConditioning") === "on",
+    hasSecurity: formData.get("security") === "on",
+    
     deposit: numberOrUndefined(formData.get("deposit")),
     utilitiesCondition: text(formData.get("utilitiesCondition")),
     images,
@@ -129,6 +134,7 @@ export async function createListingAction(
       parsed.data.region,
     ].filter(Boolean).join(" "));
     const slug = `${slugBase || "elon"}-${randomUUID().slice(0, 8)}`;
+    
     const listing = await prisma.listing.create({
       data: {
         slug,
@@ -152,6 +158,12 @@ export async function createListingAction(
         hasWater: parsed.data.hasWater ?? false,
         hasElectricity: parsed.data.hasElectricity ?? false,
         hasSewage: parsed.data.hasSewage,
+        
+        // Yangi qulayliklarni bazaga yozish
+        hasWifi: parsed.data.hasWifi,
+        hasAirConditioner: parsed.data.hasAirConditioner,
+        hasSecurity: parsed.data.hasSecurity,
+        
         livingArea: parsed.data.livingArea,
         landArea: parsed.data.landArea,
         purpose: parsed.data.purpose,
@@ -199,6 +211,12 @@ export async function createListingAction(
         bathroom: listing.bathroom,
         elevator: listing.elevator,
         furniture: listing.furniture,
+        
+        // Yangi qulayliklarni Telegramga yuborish
+        hasWifi: listing.hasWifi,
+        hasAirConditioner: listing.hasAirConditioner,
+        hasSecurity: listing.hasSecurity,
+        
         deposit: listing.deposit,
         utilitiesCondition: listing.utilitiesCondition,
         hasGas: listing.hasGas,
