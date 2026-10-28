@@ -2,11 +2,25 @@ import type { Metadata } from "next"
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, UserRound } from "lucide-react"
+import dynamic from "next/dynamic"
+import { ArrowLeft, UserRound, Loader2 } from "lucide-react"
 import { authOptions } from "@/lib/auth-options"
 import { isSupabaseConfigured } from "@/lib/supabaseClient"
-import CreateListingForm from "@/components/listings/create/CreateListingForm"
 import Logo from "@/components/ui/Logo"
+
+// Formani dinamik yuklash (Sayt tezligini oshiradi)
+const CreateListingForm = dynamic(
+  () => import("@/components/listings/create/CreateListingForm"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[50vh] flex-col items-center justify-center space-y-4 text-green-700 dark:text-green-500">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="text-sm font-medium">Forma yuklanmoqda...</p>
+      </div>
+    ),
+  }
+)
 
 export const metadata: Metadata = {
   title: "E'lon qo'shish | Olsot Market",
@@ -18,6 +32,7 @@ export const dynamic = "force-dynamic"
 export default async function CreateListingPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect("/login?callbackUrl=/listings/create")
+  
   const userInitial = session.user.name?.trim().charAt(0).toLocaleUpperCase("uz-UZ")
 
   return (
@@ -51,6 +66,8 @@ export default async function CreateListingPage() {
             E&apos;loningiz haqida asosiy ma&apos;lumotlarni kiriting
           </p>
         </div>
+        
+        {/* Dinamik yuklangan forma */}
         <CreateListingForm storageReady={isSupabaseConfigured()} />
       </main>
     </div>

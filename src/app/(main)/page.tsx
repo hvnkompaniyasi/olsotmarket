@@ -1,4 +1,5 @@
 import type { ListingType, Prisma, PropertyCategory } from "@prisma/client"
+import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import { DEAL_TYPES, PROPERTY_CATEGORIES } from "@/lib/locations"
 import Navbar from "@/components/Navbar"
@@ -11,10 +12,18 @@ import MobileNav from "@/components/MobileNav"
 
 export const revalidate = 3600
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Olsot Market — O'zbekistondagi ishonchli ko'chmas mulk platformasi",
   description:
     "Kvartira, uy, ofis va yer e'lonlari — sotib olish, ijaraga. Xaritada qidiring, to'g'ridan-to'g'ri sotuvchi bilan bog'laning.",
+  openGraph: {
+    title: "Olsot Market",
+    description: "O'zbekistondagi ishonchli ko'chmas mulk platformasi",
+    url: "https://olsotmarket.uz",
+    siteName: "Olsot Market",
+    locale: "uz_UZ",
+    type: "website",
+  },
 }
 
 const HOME_LIMIT = 12
@@ -22,7 +31,6 @@ const TYPE_IDS = new Set(DEAL_TYPES.map((deal) => deal.id))
 const CATEGORY_IDS = new Set(PROPERTY_CATEGORIES.map((category) => category.id))
 
 type SearchParamValue = string | string[] | undefined
-
 interface HomePageProps {
   searchParams: Record<string, SearchParamValue>
 }
@@ -42,6 +50,7 @@ const cardSelect = {
   id: true,
   title: true,
   price: true,
+  currency: true, // YANGI QO'SHILDI (Buni qo'shish shart edi!)
   images: true,
   region: true,
   district: true,
@@ -67,16 +76,22 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const sortBy = getParam(searchParams.sortBy)
 
   const where: Prisma.ListingWhereInput = { status: "ACTIVE" }
+  
   if (type && TYPE_IDS.has(type)) where.type = type as ListingType
   if (category && CATEGORY_IDS.has(category)) where.category = category as PropertyCategory
   if (region) where.region = region
   if (district) where.district = district
+  
   if (rooms === "4+") where.rooms = { gte: 4 }
   else if (["1", "2", "3"].includes(rooms)) where.rooms = Number(rooms)
+  
   if (query) {
-    where.OR = ["title", "description", "address", "region", "district"].map((field) => ({
-      [field]: { contains: query, mode: "insensitive" },
-    }))
+    where.OR = [
+      { title: { contains: query, mode: "insensitive" } },
+      { address: { contains: query, mode: "insensitive" } },
+      { region: { contains: query, mode: "insensitive" } },
+      { district: { contains: query, mode: "insensitive" } },
+    ]
   }
 
   const priceFilter: Prisma.FloatFilter = {}
@@ -102,15 +117,22 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   ])
 
   const queryParams = new URLSearchParams()
-  if (query) queryParams.set("q", query)
-  if (type && TYPE_IDS.has(type)) queryParams.set("type", type)
-  if (category && CATEGORY_IDS.has(category)) queryParams.set("category", category)
-  if (region) queryParams.set("region", region)
-  if (district) queryParams.set("district", district)
-  if (["1", "2", "3", "4+"].includes(rooms)) queryParams.set("rooms", rooms)
-  if (sortBy === "price-asc" || sortBy === "price-desc") queryParams.set("sortBy", sortBy)
-  if (minPrice !== undefined) queryParams.set("minPrice", String(minPrice))
-  if (maxPrice !== undefined) queryParams.set("maxPrice", String(maxPrice))
+  const appendParam = (key: string, value: string | number | undefined, defaultCheck?: string) => {
+    if (value !== undefined && String(value).length > 0 && String(value) !== defaultCheck) {
+      queryParams.set(key, String(value))
+    }
+  }
+
+  appendParam("q", query)
+  if (type && TYPE_IDS.has(type)) appendParam("type", type)
+  if (category && CATEGORY_IDS.has(category)) appendParam("category", category)
+  appendParam("region", region)
+  appendParam("district", district)
+  if (["1", "2", "3", "4+"].includes(rooms)) appendParam("rooms", rooms)
+  if (sortBy === "price-asc" || sortBy === "price-desc") appendParam("sortBy", sortBy)
+  appendParam("minPrice", minPrice)
+  appendParam("maxPrice", maxPrice)
+
   const queryString = queryParams.toString()
   const hasFilters = queryString.length > 0
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { BedDouble, Layers3, MapPin, Ruler } from "lucide-react"
@@ -7,7 +8,7 @@ import { PROPERTY_CATEGORIES } from "@/lib/locations"
 import { formatPrice } from "@/lib/format"
 import FavoriteToggle from "./FavoriteToggle"
 
-interface ListingCardProps {
+export interface ListingCardProps {
   id: string
   title: string
   price: number
@@ -24,9 +25,10 @@ interface ListingCardProps {
   priority?: boolean
   createdAt?: string
   isFavorited?: boolean
+  currency?: string // YANGI QO'SHILDI (Narxni to'g'ri formatlash uchun)
 }
 
-export default function ListingCard({
+function ListingCardBase({
   id,
   title,
   price,
@@ -41,6 +43,7 @@ export default function ListingCard({
   isPremium,
   priority = false,
   isFavorited,
+  currency = "UZS", // Standart qiymat
 }: ListingCardProps) {
   const categoryLabel =
     PROPERTY_CATEGORIES.find((item) => item.id === category)?.name ?? type
@@ -49,7 +52,7 @@ export default function ListingCard({
     <article className="group relative overflow-hidden rounded-2xl bg-white shadow-[0_4px_20px_-3px_rgba(17,24,39,0.06),0_2px_6px_-1px_rgba(17,24,39,0.03)] transition hover:shadow-[0_8px_26px_-4px_rgba(17,24,39,0.1)]">
       <Link
         href={`/listing/${id}`}
-        aria-label={`${title || "Sarlavhasiz"} — ${formatPrice(price, type)}`}
+        aria-label={`${title || "Sarlavhasiz"} — ${formatPrice(price, currency)}`}
         className="block outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-emerald-500"
       >
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
@@ -59,8 +62,9 @@ export default function ListingCard({
               alt={title ? `${title} — e'lon rasmi` : "Ko'chmas mulk e'lonining rasmi"}
               fill
               priority={priority}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              // Telefonlarda 100%, planshetda 50%, kompyuterda 33% o'lchamda yuklaydi
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-slate-100" />
@@ -74,7 +78,8 @@ export default function ListingCard({
         <div className="flex flex-col p-4">
           <div className="flex items-center justify-between gap-2">
             <p className="truncate text-xl font-bold leading-7 tracking-tight text-emerald-800 tabular-nums">
-              {formatPrice(price, type)}
+              {/* XATO TUZATILDI: type emas, currency ishlatiladi */}
+              {formatPrice(price, currency)}
             </p>
             {isPremium && (
               <span className="shrink-0 rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-800">
@@ -90,7 +95,7 @@ export default function ListingCard({
             <span className="truncate">{location}</span>
           </p>
           {(rooms > 0 || area > 0 || floor != null || totalFloors != null) && (
-            <div className="mt-3.5 flex min-w-0 items-center justify-between gap-2 rounded-xl bg-[#f1f3ff] px-3 py-2.5 text-xs font-medium text-slate-700">
+            <div className="mt-3.5 flex min-w-0 items-center justify-between gap-2 rounded-xl bg-[#f1f3ff] px-3 py-2.5 text-xs font-medium text-slate-700 dark:bg-zinc-800/50 dark:text-gray-300">
               {rooms > 0 && (
                 <span className="flex min-w-0 items-center gap-1.5">
                   <BedDouble className="h-4 w-4 shrink-0 text-slate-500" />
@@ -119,3 +124,8 @@ export default function ListingCard({
     </article>
   )
 }
+
+// REACT.MEMO: Qayta yuklanishlarni bloklaydi va sayt tezligini oshiradi
+const ListingCard = memo(ListingCardBase)
+
+export default ListingCard

@@ -1,12 +1,12 @@
 import Link from "next/link"
 import { ArrowRight, SearchX } from "lucide-react"
-import { DEAL_TYPES } from "@/lib/locations"
 import ListingCard from "@/components/ListingCard"
 
 export interface HomeListing {
   id: string
   title: string
   price: number
+  currency: string // YANGI QO'SHILDI (Narxni to'g'ri ko'rsatish uchun)
   images: string[]
   region: string
   district: string
@@ -65,16 +65,16 @@ export default function HomeListings({
     <section className="pb-6 pt-5">
       <div className="flex items-end justify-between mb-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-gray-950">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-950 dark:text-white">
             {hasFilters ? "Qidiruv natijalari" : "Tavsiya etilgan e'lonlar"}
           </h2>
-          <p className="mt-0.5 text-xs font-medium text-slate-600">
+          <p className="mt-0.5 text-xs font-medium text-slate-600 dark:text-gray-400">
             {hasFilters ? `${total} ta mos e'lon` : "Yangi va tekshirilgan mulklardan tanlov"}
           </p>
         </div>
         <Link
           href={allHref}
-          className="flex items-center gap-1 text-sm font-medium text-emerald-800"
+          className="flex items-center gap-1 text-sm font-medium text-emerald-800 dark:text-emerald-500 hover:underline"
         >
           Barchasi <ArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -87,16 +87,17 @@ export default function HomeListings({
             id={l.id}
             title={l.title}
             price={l.price}
+            currency={l.currency} // YANGI: Valyutani uzatamiz
             location={[l.region, l.district].filter(Boolean).join(", ")}
             rooms={l.rooms || 0}
             area={l.area || 0}
             image={l.images?.[0] || ""}
-            type={DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type}
+            type={l.type} // O'ZGARDI: Xom turini uzatamiz
             category={l.category}
             floor={l.floor}
             totalFloors={l.totalFloors}
             isPremium={l.isPremium}
-            priority={index === 0}
+            priority={index < 3} // Birinchi 3 ta rasm tezroq yuklanadi (LCP uchun)
             createdAt={l.createdAt.toISOString()}
             isFavorited={false}
           />

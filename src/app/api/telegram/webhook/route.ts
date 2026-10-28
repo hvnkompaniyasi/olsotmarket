@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import * as Sentry from '@sentry/nextjs'; // Sentry qo'shildi
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,7 @@ type TelegramCallbackQuery = {
     message_id: number;
     chat: { id: number };
     text?: string;
+    caption?: string; // Rasmli xabarlar uchun qo'shildi
   };
 };
 
@@ -31,9 +33,8 @@ function readCallbackQuery(body: unknown): TelegramCallbackQuery | null {
       message = {
         message_id: messageId,
         chat: { id: chatId },
-        ...(typeof callback.message.text === 'string'
-          ? { text: callback.message.text }
-          : {}),
+        ...(typeof callback.message.text === 'string' ? { text: callback.message.text } : {}),
+        ...(typeof callback.message.caption === 'string' ? { caption: callback.message.caption } : {}),
       };
     }
   }
@@ -48,7 +49,7 @@ function readCallbackQuery(body: unknown): TelegramCallbackQuery | null {
 async function callTelegramApi(
   token: string,
   method: string,
-  body: Record<string, string | number>,
+  body: Record<string, unknown>, // Tip kengaytirildi
 ): Promise<void> {
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
@@ -57,11 +58,7 @@ async function callTelegramApi(
   });
   const result: unknown = await response.json();
 
-  if (
-    !response.ok ||
-    !isRecord(result) ||
-    result.ok !== true
-  ) {
+  if (!response.ok || !isRecord(result) || result.ok !== true) {
     const description =
       isRecord(result) && typeof result.description === 'string'
         ? result.description
@@ -85,7 +82,8 @@ export async function POST(request: NextRequest) {
   const secret = process.env.TELEGRAM_SECRET_TOKEN;
   const providedSecret = request.headers.get('x-telegram-bot-api-secret-token');
 
-  if (secret && providedSecret !== null && providedSecret !== secret) {
+  // XAVFSIZLIK TUZATILDI: Endi header umuman bo'lmasa ham xato beradi (agar secret sozlangan bo'lsa)
+  if (secret && providedSecret !== secret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -111,6 +109,7 @@ export async function POST(request: NextRequest) {
       await answerCallback(token, callback.id, 'Noma’lum amal');
     } catch (error) {
       console.error('Unable to answer Telegram callback:', error);
+      Sentry.captureException(error);
       return NextResponse.json({ error: 'Telegram callback failed' }, { status: 502 });
     }
     return NextResponse.json({ ok: true });
@@ -128,6 +127,7 @@ export async function POST(request: NextRequest) {
       await answerCallback(token, callback.id, 'Admin topilmadi');
     } catch (error) {
       console.error('Unable to answer Telegram callback:', error);
+      Sentry.captureException(error);
     }
     return NextResponse.json({ error: 'Admin not found' }, { status: 503 });
   }
@@ -162,11 +162,16 @@ export async function POST(request: NextRequest) {
         : '❌ Rad etildi'
       : 'E’lon avval ko’rib chiqilgan yoki topilmadi';
 
-    if (callback.message?.text) {
-      await callTelegramApi(token, 'editMessageText', {
+    // XATO TUZATILDI: Rasmli xabar (caption) yoki matnli xabar (text) ekanligini tekshirish
+    if (callback.message) {
+      const isCaption = Boolean(callback.message.caption);
+      const method = isCaption ? 'editMessageCaption' : 'editMessageText';
+      const textField = isCaption ? 'caption' : 'text';
+
+      await callTelegramApi(token, method, {
         chat_id: callback.message.chat.id,
         message_id: callback.message.message_id,
-        text: callbackMessage,
+        [textField]: callbackMessage,
       });
     }
 
@@ -174,10 +179,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Telegram moderation webhook failed:', error);
+    Sentry.captureException(error); // Xatoni Sentry'ga yuboramiz
+    
     try {
       await answerCallback(token, callback.id, 'Amalni bajarishda xatolik yuz berdi');
     } catch (callbackError) {
       console.error('Unable to answer Telegram callback:', callbackError);
+      Sentry.captureException(callbackError);
     }
     return NextResponse.json({ error: 'Moderation action failed' }, { status: 500 });
   }

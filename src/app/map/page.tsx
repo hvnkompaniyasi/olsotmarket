@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import Map, { Marker, Popup, type MapRef } from "react-map-gl/maplibre"
+import * as Sentry from "@sentry/nextjs"
 import { ArrowLeft, SlidersHorizontal, LocateFixed, Plus, Minus, X, Loader2, MapPin } from "lucide-react"
 import { REGIONS, DEAL_TYPES } from "@/lib/locations"
+import { formatPrice } from "@/lib/format"
 import MobileNav from "@/components/MobileNav"
 import { MAPLIBRE_WORKER_URL } from "@/lib/maplibre-worker"
 
@@ -13,6 +15,7 @@ interface MapListing {
   id: string
   title: string
   price: number
+  currency: string // QO'SHILDI
   region: string
   district: string
   images: string[]
@@ -36,6 +39,7 @@ function isMapListing(value: unknown): value is MapListing {
     typeof value.id === "string" &&
     typeof value.title === "string" &&
     typeof value.price === "number" &&
+    typeof value.currency === "string" &&
     typeof value.region === "string" &&
     typeof value.district === "string" &&
     Array.isArray(value.images) &&
@@ -44,15 +48,6 @@ function isMapListing(value: unknown): value is MapListing {
     (typeof value.latitude === "number" || value.latitude === null) &&
     (typeof value.longitude === "number" || value.longitude === null)
   )
-}
-
-function safeImageUrl(value: string): string | null {
-  try {
-    const url = new URL(value, "https://olsotmarket.uz")
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null
-  } catch {
-    return null
-  }
 }
 
 export default function MapPage() {
@@ -93,6 +88,7 @@ export default function MapPage() {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           setListings([])
           showToast("E'lonlarni yuklab bo'lmadi")
+          Sentry.captureException(error) // Xatoni Sentry'ga yuborish
         }
       }
     }
@@ -129,10 +125,7 @@ export default function MapPage() {
       ({ coords }) => {
         const location = { latitude: coords.latitude, longitude: coords.longitude }
         setUserLocation(location)
-        mapRef.current?.flyTo({
-          center: [location.longitude, location.latitude],
-          zoom: 13,
-        })
+        mapRef.current?.flyTo({ center: [location.longitude, location.latitude], zoom: 13 })
         setLocating(false)
         showToast("📍 Joylashuvingiz belgilandi")
       },
@@ -155,7 +148,7 @@ export default function MapPage() {
           workerUrl={MAPLIBRE_WORKER_URL}
           initialViewState={{ longitude: 69.2797, latitude: 41.3111, zoom: 6 }}
           onLoad={() => setReady(true)}
-          onError={(event) => console.error("MapLibre /map error:", event.error)}
+          onError={(event) => Sentry.captureException(event.error)}
           interactive
           dragPan
           scrollZoom
@@ -173,10 +166,11 @@ export default function MapPage() {
             <button
               type="button"
               onClick={() => setSelected(listing)}
-              className="whitespace-nowrap rounded-full border-2 border-white bg-gradient-to-br from-orange-400 to-green-700 px-3 py-1.5 text-xs font-bold text-white shadow-[0_4px_14px_rgba(249,115,22,.45)]"
-              aria-label={`E'lon: $${Math.round(listing.price / 1000)} ming`}
+              className="whitespace-nowrap rounded-full border-2 border-white bg-[#0A7C4E] px-3 py-1.5 text-xs font-bold text-white shadow-[0_4px_14px_rgba(10,124,78,0.4)] hover:scale-105 transition-transform"
+              aria-label={`E'lon narxi: ${formatPrice(listing.price, listing.currency || "UZS")}`}
             >
-              ${Math.round(listing.price / 1000)}k
+              {/* XATO TUZATILDI: formatPrice va valyuta ishlatildi */}
+              {formatPrice(listing.price, listing.currency || "UZS")}
             </button>
           </Marker>
         ))}
@@ -188,30 +182,33 @@ export default function MapPage() {
             onClose={() => setSelected(null)}
             closeOnClick={false}
           >
-            <div className="w-[190px]">
-              {activeListing.images[0] && safeImageUrl(activeListing.images[0]) && (
-                <div className="relative mb-2 h-[110px] overflow-hidden rounded-[10px]">
+            <div className="w-[200px]">
+              {activeListing.images[0] && (
+                <div className="relative mb-2 h-[120px] overflow-hidden rounded-xl bg-gray-100">
                   <Image
-                    src={safeImageUrl(activeListing.images[0]) ?? ""}
-                    alt={`${activeListing.title} — e'lon rasmi`}
+                    src={activeListing.images[0]}
+                    alt={activeListing.title}
                     fill
-                    unoptimized
+                    sizes="200px"
                     className="object-cover"
                   />
                 </div>
               )}
-              <p className="mb-0.5 text-[13px] font-bold">{(activeListing.title || "Sarlavhasiz").slice(0, 45)}</p>
-              <p className="text-[15px] font-extrabold text-orange-600">
-                ${activeListing.price.toLocaleString("en-US")}
+              <p className="mb-1 text-[13px] font-bold line-clamp-2 leading-tight text-gray-900 dark:text-white">
+                {activeListing.title || "Sarlavhasiz"}
               </p>
-              <p className="my-1 text-[11px] text-gray-500">
+              <p className="text-[15px] font-extrabold text-[#0A7C4E] dark:text-emerald-500">
+                {/* XATO TUZATILDI: formatPrice */}
+                {formatPrice(activeListing.price, activeListing.currency || "UZS")}
+              </p>
+              <p className="my-1.5 text-[11px] text-gray-500 dark:text-gray-400">
                 {activeListing.region}{activeListing.district ? `, ${activeListing.district}` : ""}
               </p>
               <Link
                 href={`/listing/${encodeURIComponent(activeListing.id)}`}
-                className="block rounded-lg bg-gradient-to-br from-orange-400 to-green-700 p-2 text-center text-xs font-bold text-white"
+                className="block rounded-lg bg-[#0A7C4E] p-2 text-center text-xs font-bold text-white hover:bg-[#086339] transition-colors"
               >
-                Ko&apos;rish
+                Batafsil ko&apos;rish
               </Link>
             </div>
           </Popup>
@@ -225,8 +222,8 @@ export default function MapPage() {
       </div>
 
       {!ready && (
-        <div className="pointer-events-none absolute inset-0 z-[400] flex items-center justify-center bg-green-50 dark:bg-zinc-900">
-          <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+        <div className="pointer-events-none absolute inset-0 z-[400] flex items-center justify-center bg-[#F7FBF8] dark:bg-zinc-950">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0A7C4E]" />
         </div>
       )}
 
@@ -235,7 +232,7 @@ export default function MapPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-white/95 px-4 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/95">
-          <MapPin className="h-4 w-4 flex-shrink-0 text-green-500" />
+          <MapPin className="h-4 w-4 flex-shrink-0 text-[#0A7C4E]" />
           <span className="truncate text-sm font-semibold text-gray-700 dark:text-gray-200">
             Xaritadagi e&apos;lonlar: {listings.length}
           </span>
@@ -246,14 +243,14 @@ export default function MapPage() {
       </div>
 
       {toast && (
-        <div role="status" className="absolute left-1/2 top-16 z-[600] -translate-x-1/2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-semibold text-white shadow-xl">
+        <div role="status" className="absolute left-1/2 top-16 z-[600] -translate-x-1/2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-semibold text-white shadow-xl animate-in fade-in slide-in-from-top-4">
           {toast}
         </div>
       )}
 
       <div className="absolute bottom-24 right-3 z-[500] flex flex-col gap-2">
         <button onClick={locate} className={fabCls} aria-label="O'zim turgan joy">
-          {locating ? <Loader2 className="h-5 w-5 animate-spin text-blue-500" /> : <LocateFixed className="h-5 w-5 text-blue-500" />}
+          {locating ? <Loader2 className="h-5 w-5 animate-spin text-[#0A7C4E]" /> : <LocateFixed className="h-5 w-5 text-[#0A7C4E]" />}
         </button>
         <button onClick={() => mapRef.current?.zoomIn()} className={fabCls} aria-label="Yaqinlashtirish">
           <Plus className="h-5 w-5" />
@@ -264,38 +261,38 @@ export default function MapPage() {
       </div>
 
       {sheetOpen && (
-        <div className="absolute inset-0 z-[700] bg-black/50 backdrop-blur-sm" onClick={() => setSheetOpen(false)}>
+        <div className="absolute inset-0 z-[700] bg-black/50 backdrop-blur-sm animate-in fade-in" onClick={() => setSheetOpen(false)}>
           <div
-            className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8 shadow-2xl dark:bg-zinc-900"
+            className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-5 pb-8 shadow-2xl dark:bg-zinc-900 animate-in slide-in-from-bottom"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-700" />
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-bold text-gray-800 dark:text-white">Filtrlar</h3>
-              <button onClick={() => setSheetOpen(false)} aria-label="Yopish">
-                <X className="h-5 w-5 text-gray-400" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filtrlar</h3>
+              <button onClick={() => setSheetOpen(false)} className="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Yopish">
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-300">Hudud</label>
-                <select value={region} onChange={(event) => setRegion(event.target.value)} className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">Hudud</label>
+                <select value={region} onChange={(event) => setRegion(event.target.value)} className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-[#0A7C4E] dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
                   <option value="">Barcha hududlar</option>
                   {REGIONS.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-300">Bitim turi</label>
-                <select value={deal} onChange={(event) => setDeal(event.target.value)} className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">Bitim turi</label>
+                <select value={deal} onChange={(event) => setDeal(event.target.value)} className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-800 outline-none focus:border-[#0A7C4E] dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
                   <option value="">Barcha turlar</option>
                   {DEAL_TYPES.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </div>
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setRegion(""); setDeal("") }} className="h-12 flex-1 rounded-xl bg-gray-100 text-sm font-semibold text-gray-700 dark:bg-zinc-800 dark:text-gray-200">
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => { setRegion(""); setDeal("") }} className="h-12 flex-1 rounded-xl bg-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-200 dark:hover:bg-zinc-700 transition-colors">
                   Tozalash
                 </button>
-                <button onClick={() => setSheetOpen(false)} className="h-12 flex-1 rounded-xl bg-gradient-to-r from-green-400 to-emerald-500 text-sm font-bold text-white shadow-lg">
+                <button onClick={() => setSheetOpen(false)} className="h-12 flex-1 rounded-xl bg-[#0A7C4E] text-sm font-bold text-white shadow-lg shadow-green-500/30 hover:bg-[#086339] transition-colors">
                   Ko&apos;rish ({listings.length})
                 </button>
               </div>

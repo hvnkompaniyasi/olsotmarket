@@ -1,21 +1,35 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import type { Metadata } from "next";
 import { MapPin } from "lucide-react";
 import { getCachedListingPage } from "@/lib/listing-cache";
 import { formatPrice } from "@/lib/format";
-import { DEAL_TYPES } from "@/lib/locations";
 import Navbar from "@/components/Navbar";
 import ListingsFilters from "@/components/ListingsFilters";
 import ListingsGrid from "@/components/ListingsGrid";
 import ListingsPagination from "@/components/ListingsPagination";
 import ViewToggle from "@/components/ViewToggle";
-import ListingsMap from "@/components/ListingsMap";
-import ListingCardLarge from "@/components/ListingCardLarge";
 import Footer from "@/components/Footer";
 import MobileNav from "@/components/MobileNav";
 
-export const metadata = {
+// OG'IR KOMPONENTLARNI DINAMIK YUKLASH (Sahifa tezligini oshiradi)
+const ListingsMap = dynamic(() => import("@/components/ListingsMap"), {
+  ssr: false,
+  loading: () => <div className="h-[500px] w-full animate-pulse rounded-xl bg-gray-100 dark:bg-zinc-800" />,
+});
+
+const ListingCardLarge = dynamic(() => import("@/components/ListingCardLarge"), {
+  loading: () => <div className="h-40 w-full animate-pulse rounded-xl bg-gray-100 dark:bg-zinc-800" />,
+});
+
+export const metadata: Metadata = {
   title: "Barcha e'lonlar | Olsot Market",
   description: "O'zbekiston bo'ylab barcha faol uy-joy e'lonlari — qidiring, filtrlang, xaritada ko'ring",
+  openGraph: {
+    title: "Barcha ko'chmas mulk e'lonlari | Olsot Market",
+    description: "O'zingizga mos uy-joyni toping. Minglab tasdiqlangan e'lonlar.",
+    url: "https://olsotmarket.uz/listings",
+  },
 };
 
 export const revalidate = 3600;
@@ -29,6 +43,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
   const view = searchParams.view === "map" || searchParams.view === "large" ? searchParams.view : "grid";
   const t = searchParams.type;
   const type = t === "SALE" || t === "RENT" || t === "DAILY" ? t : undefined;
+  
   const { total, listings, regions } = await getCachedListingPage({
     page,
     type,
@@ -42,12 +57,13 @@ export default async function ListingsPage({ searchParams }: PageProps) {
     if (k !== "page" && v) rest.set(k, v);
   });
 
+  // XARITA UCHUN VALYUTA TO'G'RILANDI
   const mapListings = listings
     .filter((l) => l.latitude !== null && l.longitude !== null)
     .map((l) => ({
       id: l.id,
       title: l.title,
-      price: formatPrice(l.price, DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type),
+      price: formatPrice(l.price, l.currency || "UZS"), 
       lat: l.latitude as number,
       lng: l.longitude as number,
       image: l.images?.[0] || "",
@@ -61,10 +77,10 @@ export default async function ListingsPage({ searchParams }: PageProps) {
         <div className="flex items-center justify-between gap-3 pt-4 pb-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white">
-              Barcha e'lonlar
+              Barcha e&apos;lonlar
             </h1>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              O'zingizga mos uy-joyni toping
+              O&apos;zingizga mos uy-joyni toping
             </p>
           </div>
           <Link
@@ -76,13 +92,14 @@ export default async function ListingsPage({ searchParams }: PageProps) {
         </div>
 
         <ListingsFilters regions={regions} />
+        
         <div className="flex items-center justify-between gap-3 pb-3">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Topildi:{" "}
             <span className="font-extrabold text-gray-900 dark:text-white">
               {total.toLocaleString("ru-RU")}
             </span>{" "}
-            ta e'lon
+            ta e&apos;lon
           </p>
           <ViewToggle />
         </div>
@@ -99,11 +116,12 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                 id={l.id}
                 title={l.title}
                 price={l.price}
+                currency={l.currency || "UZS"} // VALYUTA QO'SHILDI
                 location={[l.region, l.district].filter(Boolean).join(", ")}
                 rooms={l.rooms || 0}
                 area={l.area || 0}
                 image={l.images?.[0] || ""}
-                type={DEAL_TYPES.find((d) => d.id === l.type)?.name || l.type}
+                type={l.type}
                 seller={l.user?.name || undefined}
                 isPremium={l.isPremium}
               />
@@ -112,6 +130,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
         ) : (
           <ListingsGrid listings={listings} total={total} />
         )}
+        
         <ListingsPagination total={total} page={page} perPage={perPage} params={rest.toString()} />
       </main>
       <Footer />

@@ -1,5 +1,4 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -69,20 +68,7 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.45 0.15 155);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.45 0.15 155);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
@@ -92,7 +78,7 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.6 0.15 155); /* Green primary dark */
+  --primary: oklch(0.6 0.15 155);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -104,19 +90,6 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.6 0.15 155);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.15 155);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
@@ -128,63 +101,30 @@
   }
   html {
     @apply font-sans;
+    font-family: Inter, "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    scroll-behavior: smooth;
   }
 }
 
-/* ============ DARK MODE ============ */
-.dark { color-scheme: dark; }
-.dark body { background-color: #09090b; color: #f4f4f5; }
+/* ============ XAVFSIZLIK VA SKROLL ============ */
+html, body {
+  overflow-x: clip;
+}
 
-/* Sahifa fonlari - orange/amber o'rniga green */
-.dark .bg-gradient-to-br.from-green-50.via-emerald-50.to-teal-50 { background-image: none; background-color: #09090b; }
-.dark .bg-gradient-to-br.from-green-100.to-emerald-100 { background-image: none; background-color: #27272a; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Yuzalar (kartalar, navbar, modallar) */
-.dark .bg-white, .dark .bg-white\/95 { background-color: #18181b; }
-.dark .bg-white\/90 { background-color: rgb(24 24 27 / 0.9); }
-.dark .bg-white\/80 { background-color: rgb(24 24 27 / 0.8); }
-.dark .bg-white\/70 { background-color: rgb(9 9 11 / 0.85); }
-.dark .bg-white\/60, .dark .bg-white\/50, .dark .bg-white\/40 { background-color: rgb(24 24 27 / 0.5); }
-.dark .bg-gray-100 { background-color: #27272a; }
-.dark .bg-gray-200 { background-color: #3f3f46; }
+/* ============ ANIMATSIYALAR ============ */
+@keyframes shimmer { 
+  0% { background-position: -200% 0; } 
+  100% { background-position: 200% 0; } 
+}
+.animate-pulse { 
+  animation: shimmer 2s ease-in-out infinite; 
+  background-size: 200% 100%; 
+  background-image: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent); 
+}
 
-/* Chegaralar */
-.dark .border-white\/70, .dark .border-white\/60 { border-color: rgb(63 63 70 / 0.6); }
-.dark .border-gray-100 { border-color: #27272a; }
-.dark .border-gray-200 { border-color: #3f3f46; }
-.dark .border-gray-300 { border-color: #52525b; }
-
-/* Matnlar */
-.dark .text-gray-800, .dark .text-gray-900 { color: #fafafa; }
-.dark .text-gray-700 { color: #e4e4e7; }
-.dark .text-gray-600 { color: #a1a1aa; }
-.dark .text-gray-500 { color: #8b8b93; }
-
-/* Chip va badge'lar - green variants */
-.dark .bg-green-50 { background-color: rgb(5 46 22 / 0.45); }
-.dark .bg-emerald-100 { background-color: rgb(5 46 22 / 0.35); }
-.dark .bg-teal-50 { background-color: rgb(5 46 22 / 0.45); }
-.dark .border-green-200 { border-color: rgb(20 83 45 / 0.45); }
-.dark .border-emerald-200 { border-color: rgb(20 83 45 / 0.35); }
-.dark .border-teal-200 { border-color: rgb(20 83 45 / 0.35); }
-.dark .text-green-700 { color: #86efac; }
-.dark .text-emerald-700 { color: #86efac; }
-.dark .text-teal-700 { color: #86efac; }
-
-/* ============ SMOOTH TRANSITIONS ============ */
-* { scroll-behavior: smooth; }
-a, button { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 200ms; }
-img { transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-
-/* Skeleton pulse yaxshilash */
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-.animate-pulse { animation: shimmer 2s ease-in-out infinite; background-size: 200% 100%; background-image: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent); }
-
-/* Card hover yaxshilash */
-.group { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-
-
-/* ============ USER LOCATION DOT ============ */
 .user-dot {
   width: 18px; height: 18px;
   background: #16a34a; border: 3px solid #fff; border-radius: 50%;
@@ -195,27 +135,7 @@ img { transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
   100% { box-shadow: 0 0 0 16px rgba(22,163,74,0); }
 }
 
-/* ============ HORIZONTAL SCROLL HIMOYASI ============ */
-html, body {
-  overflow-x: clip;
-}
-
-/* ============ SYSTEM FONT STACK (tez + chiroyli) ============ */
-html {
-  font-family: Inter, "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji";
-}
-
-/* ============ SCROLLBAR YASHIRISH ============ */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-/* === Olsot Market Design System v2: Glass & Green === */
+/* ============ DIZAYN TIZIMI (Glass & Green) ============ */
 .glass {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
@@ -237,6 +157,7 @@ html {
 
 /* === Narxli xarita pin'lari (WOW #1) === */
 .price-pin {
+  position: relative; /* XATO TUZATILDI: ::after to'g'ri ishlashi uchun */
   background: #0A7C4E;
   color: #fff;
   font-weight: 800;

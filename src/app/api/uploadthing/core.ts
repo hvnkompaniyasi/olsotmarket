@@ -6,13 +6,29 @@ import { authOptions } from "@/lib/auth-options"
 const f = createUploadthing()
 
 export const ourFileRouter = {
-  listingImage: f({ image: { maxFileSize: "4MB", maxFileCount: 8 } })
+  // "listingImage" endpointi
+  listingImage: f({ 
+    image: { 
+      maxFileSize: "5MB", // Frontendga moslashtirildi
+      maxFileCount: 10,  // Frontendga moslashtirildi (10 ta rasm)
+    } 
+  })
     .middleware(async () => {
       const session = await getServerSession(authOptions)
-      if (!session?.user?.id) throw new UploadThingError("Faqat tizimga kirganlar rasm yuklay oladi")
+      
+      // Xavfsizlik: Faqat tizimga kirgan foydalanuvchilar yuklay oladi
+      if (!session?.user?.id) {
+        throw new UploadThingError("Faqat tizimga kirganlar rasm yuklay oladi")
+      }
+      
+      // Metadataga foydalanuvchi ID sini saqlaymiz (keyinchalik bazaga yozish uchun kerak bo'ladi)
       return { userId: session.user.id }
     })
     .onUploadComplete(async ({ metadata, file }) => {
+      // Konsolga log yozish (xatoliklarni kuzatish uchun)
+      console.log(`Rasm yuklandi. Foydalanuvchi: ${metadata.userId}, URL: ${file.url}`)
+      
+      // Frontendga foydalanuvchi ID va rasm URL manzilini qaytaramiz
       return { uploadedBy: metadata.userId, url: file.url }
     }),
 } satisfies FileRouter
