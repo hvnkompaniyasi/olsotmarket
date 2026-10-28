@@ -2,14 +2,14 @@ import type { Metadata } from "next"
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import dynamic from "next/dynamic"
+import nextDynamic from "next/dynamic" // XATO TUZATILDI: dynamic -> nextDynamic
 import { ArrowLeft, UserRound, Loader2 } from "lucide-react"
 import { authOptions } from "@/lib/auth-options"
 import { isSupabaseConfigured } from "@/lib/supabaseClient"
 import Logo from "@/components/ui/Logo"
 
 // Formani dinamik yuklash (Sayt tezligini oshiradi)
-const CreateListingForm = dynamic(
+const CreateListingForm = nextDynamic( // XATO TUZATILDI: dynamic -> nextDynamic
   () => import("@/components/listings/create/CreateListingForm"),
   {
     ssr: false,
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   description: "Ko'chmas mulk e'lonini joylashtiring",
 }
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic" // Bu o'z joyida qoladi
 
 export default async function CreateListingPage() {
   const session = await getServerSession(authOptions)
