@@ -7,11 +7,13 @@ import { getRedisCache, setRedisCache } from "@/lib/redis"
 const LISTING_PAGE_SIZE = 12
 const LISTING_CACHE_TTL_SECONDS = 300
 
+// XATO TUZATILDI: currency: true qo'shildi
 const listingSelect = {
   id: true,
   title: true,
   type: true,
   price: true,
+  currency: true, 
   region: true,
   district: true,
   rooms: true,
@@ -39,6 +41,7 @@ interface ListingPageParams {
   query?: string
 }
 
+// XATO TUZATILDI: currency: z.string() qo'shildi
 const cachedListingPageSchema = z.object({
   total: z.number().int().nonnegative(),
   listings: z.array(
@@ -47,6 +50,7 @@ const cachedListingPageSchema = z.object({
       title: z.string(),
       type: z.enum(["SALE", "RENT", "NEW_BUILDING", "DAILY"]),
       price: z.number(),
+      currency: z.string(),
       region: z.string(),
       district: z.string(),
       rooms: z.number().nullable(),
