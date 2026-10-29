@@ -1,318 +1,117 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useState } from "react"
 import Image from "next/image"
-import { ChevronLeft, ChevronRight, Loader2, Pencil, Star, UploadCloud, X } from "lucide-react"
-import {
-  deleteListingImage,
-  listingImagePathFromUrl,
-  uploadListingImage,
-} from "@/lib/supabaseClient"
-import { MAX_LISTING_IMAGES, MAX_LISTING_IMAGE_SIZE } from "@/lib/listing-form"
-
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
-const MAX_SOURCE_IMAGE_SIZE = 20 * 1024 * 1024
+import imageCompression from "browser-image-compression"
+import { UploadCloud, X, Loader2 } from "lucide-react"
 
 interface Props {
   images: string[]
   onChange: (images: string[]) => void
-  onBusyChange: (busy: boolean) => void
-  onError?: (error: string) => void
-  draftId: string
-  disabled?: boolean
+  maxFiles?: number
 }
 
-async function compressImage(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement("canvas")
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale))
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale))
-  const context = canvas.getContext("2d")
-  if (!context) throw new Error("Rasmni qayta ishlash imkoni bo'lmadi")
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-
-  let quality = 0.86
-  let blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality))
-  while (blob && blob.size > MAX_LISTING_IMAGE_SIZE && quality > 0.4) {
-    quality -= 0.12
-    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality))
-  }
-
-  if (!blob || blob.size > MAX_LISTING_IMAGE_SIZE) {
-    throw new Error("Siqilgandan keyin ham rasm 5 MB dan katta")
-  }
-
-  const name = `${file.name.replace(/\.[^.]+$/, "")}.webp`
-  return new File([blob], name, { type: "image/webp", lastModified: Date.now() })
-}
-
-export default function ListingImageUploader({
-  images,
-  onChange,
-  onBusyChange,
-  onError,
-  draftId,
-  disabled,
-}: Props) {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [busy, setBusy] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
+export default function ListingImageUploader({ images, onChange, maxFiles = 10 }: Props) {
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
-  const [uploadProgress, setUploadProgress] = useState<{ name: string; value: number } | null>(null)
-  const [replaceIndex, setReplaceIndex] = useState<number | null>(null)
 
-  const setUploading = (value: boolean) => {
-    setBusy(value)
-    onBusyChange(value)
-  }
-
-  const handleFiles = async (list: FileList | File[], replacementIndex: number | null = null) => {
-    const selectedFiles = Array.from(list)
-    const files = replacementIndex === null ? selectedFiles : selectedFiles.slice(0, 1)
-    if (files.length === 0 || disabled) return
-
-    if (files.some((file) => !ALLOWED_IMAGE_TYPES.has(file.type))) {
-      setError("Faqat JPG, PNG yoki WEBP rasmlar yuklanadi")
-      return
-    }
-    if (files.some((file) => file.size > MAX_SOURCE_IMAGE_SIZE)) {
-      setError("Har bir rasm 20 MB dan kichik bo'lishi kerak")
-      return
-    }
-    if (replacementIndex === null && images.length + files.length > MAX_LISTING_IMAGES) {
-      setError(`Maksimum ${MAX_LISTING_IMAGES} ta rasm yuklash mumkin`)
-      return
-    }
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
     setError("")
-    onError?.("")
     setUploading(true)
-    const next = [...images]
 
     try {
-      for (const original of files) {
-        const file = await compressImage(original)
-        setUploadProgress({ name: original.name, value: 0 })
-        const imageUrl = await uploadListingImage(file, draftId, (value) => {
-          setUploadProgress({ name: original.name, value })
-        })
-        if (replacementIndex === null) {
-          next.push(imageUrl)
-        } else {
-          const oldUrl = next[replacementIndex]
-          next[replacementIndex] = imageUrl
-          onChange([...next])
-          const oldPath = oldUrl ? listingImagePathFromUrl(oldUrl) : null
-          if (oldPath) {
-            try {
-              await deleteListingImage(oldPath)
-            } catch (deleteError) {
-              const message =
-                deleteError instanceof Error ? deleteError.message : "Eski rasm o'chirilmadi"
-              setError(message)
-              onError?.(message)
-            }
-          }
-          continue
+      const newImages = [...images]
+      const filesArray = Array.from(files)
+
+      for (const file of filesArray) {
+        if (newImages.length >= maxFiles) {
+          setError(`Maksimal ${maxFiles} ta rasm yuklashingiz mumkin.`)
+          break
         }
-        onChange([...next])
+
+        const options = { maxSizeMB: 0.3, maxWidthOrHeight: 1920, useWebWorker: true }
+        
+        let fileToUpload = file
+        try {
+          fileToUpload = await imageCompression(file, options)
+        } catch (compressErr) {
+          console.warn("Rasmni siqishda xatolik, asl fayl yuklanadi:", compressErr)
+        }
+
+        const formData = new FormData()
+        formData.append("file", fileToUpload)
+
+        const res = await fetch("/api/uploadthing", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!res.ok) throw new Error("Rasm yuklashda xatolik yuz berdi")
+        
+        const data = await res.json()
+        if (data.url) newImages.push(data.url)
       }
-    } catch (uploadError) {
-      const message = uploadError instanceof Error ? uploadError.message : "Rasm yuklanmadi"
-      setError(message)
-      onError?.(message)
+
+      onChange(newImages)
+    } catch (err) {
+      console.error(err)
+      setError("Rasmlarni yuklashda xatolik yuz berdi. Qayta urinib ko'ring.")
     } finally {
-      setUploadProgress(null)
       setUploading(false)
+      e.target.value = ""
     }
   }
 
-  const removeImage = async (url: string) => {
-    onChange(images.filter((item) => item !== url))
-    const path = listingImagePathFromUrl(url)
-    if (!path) return
-    try {
-      await deleteListingImage(path)
-    } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Rasm o'chirilmadi"
-      setError(message)
-      onError?.(message)
-    }
-  }
-
-  const moveImage = (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction
-    if (targetIndex < 0 || targetIndex >= images.length) return
-    const reordered = [...images]
-    const currentImage = reordered[index]
-    const targetImage = reordered[targetIndex]
-    if (!currentImage || !targetImage) return
-    reordered[index] = targetImage
-    reordered[targetIndex] = currentImage
-    onChange(reordered)
-  }
-
-  const makeCover = (index: number) => {
-    const cover = images[index]
-    if (!cover || index === 0) return
-    onChange([cover, ...images.slice(0, index), ...images.slice(index + 1)])
+  const removeImage = (index: number) => {
+    const newImages = [...images]
+    newImages.splice(index, 1)
+    onChange(newImages)
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)]">
-      {images.map((url) => (
-        <input key={url} type="hidden" name="images" value={url} />
-      ))}
-
-      <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 block">
-        Rasmlar * (maks. {MAX_LISTING_IMAGES})
-      </label>
-
-      <div
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            setReplaceIndex(null)
-            inputRef.current?.click()
-          }
-        }}
-        onDragOver={(event) => {
-          event.preventDefault()
-          if (!disabled) setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(event) => {
-          event.preventDefault()
-          setDragOver(false)
-          void handleFiles(event.dataTransfer.files)
-        }}
-        onClick={() => {
-          if (!disabled && !busy) {
-            setReplaceIndex(null)
-            inputRef.current?.click()
-          }
-        }}
-        className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
-          disabled
-            ? "border-gray-200 dark:border-zinc-800 opacity-60 cursor-not-allowed"
-            : dragOver
-              ? "border-[#0A7C4E] bg-green-50 dark:bg-green-500/10 cursor-pointer"
-              : "border-gray-200 dark:border-zinc-700 hover:border-[#0A7C4E]/60 cursor-pointer"
-        }`}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          multiple
-          hidden
-          disabled={disabled || busy}
-          onClick={(event) => event.stopPropagation()}
-          onChange={(event) => {
-            if (event.target.files) void handleFiles(event.target.files, replaceIndex)
-            setReplaceIndex(null)
-            event.target.value = ""
-          }}
-        />
-        {busy ? (
-          <div className="w-full max-w-xs mx-auto">
-            <Loader2 className="h-6 w-6 animate-spin text-[#0A7C4E] mx-auto mb-2" />
-            <p className="text-[11px] text-gray-500">{uploadProgress?.name} · {uploadProgress?.value ?? 0}%</p>
-            <div className="mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-green-700 transition-all"
-                style={{ width: `${uploadProgress?.value ?? 0}%` }}
-              />
-            </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4">
+        {images.map((img, i) => (
+          <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 group">
+            <Image src={img} alt={`Rasm ${i + 1}`} fill className="object-cover" />
+            <button
+              type="button"
+              onClick={() => removeImage(i)}
+              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </div>
-        ) : (
-          <>
-            <UploadCloud className="h-8 w-8 text-gray-300 dark:text-zinc-600 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">
-              Rasmlarni shu yerga tashlang
-            </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              yoki bosib tanlang · JPG, PNG, WEBP · har biri 5 MB gacha siqiladi
-            </p>
-          </>
+        ))}
+
+        {images.length < maxFiles && (
+          <label className={`w-24 h-24 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-colors ${uploading ? 'bg-gray-50 border-gray-300' : 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100'}`}>
+            {uploading ? (
+              <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+            ) : (
+              <>
+                <UploadCloud className="w-6 h-6 text-emerald-500 mb-1" />
+                <span className="text-[10px] text-emerald-700 font-medium text-center">Rasm qo'shish</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg, image/png, image/webp"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
+          </label>
         )}
       </div>
-
-      {error && <p className="mt-2 text-xs text-red-600" role="alert">{error}</p>}
-
-      {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          {images.map((url, index) => (
-            <div
-              key={url}
-              className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-700"
-            >
-              <div className="relative w-full h-20">
-                <Image src={url} alt={`Rasm ${index + 1}`} fill sizes="120px" className="object-cover" />
-              </div>
-              {index === 0 && (
-                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-[#0A7C4E] text-white text-[9px] font-bold rounded">
-                  Asosiy
-                </span>
-              )}
-              <div className="absolute bottom-1 left-1 flex gap-1">
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => moveImage(index, -1)}
-                    aria-label={`${index + 1}-rasmni chapga surish`}
-                    className="rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {index < images.length - 1 && (
-                  <button
-                    type="button"
-                    onClick={() => moveImage(index, 1)}
-                    aria-label={`${index + 1}-rasmni o'ngga surish`}
-                    className="rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => makeCover(index)}
-                    aria-label={`${index + 1}-rasmni bosh rasm qilish`}
-                    className="rounded-full bg-black/60 p-1 text-white hover:bg-amber-500"
-                  >
-                    <Star className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setReplaceIndex(index)
-                  inputRef.current?.click()
-                }}
-                aria-label={`${index + 1}-rasmni almashtirish`}
-                className="absolute bottom-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-green-700"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => void removeImage(url)}
-                aria-label={`${index + 1}-rasmni o'chirish`}
-                className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-red-600 transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <p className="text-xs text-gray-500">
+        JPG, PNG yoki WEBP formatidagi rasmlar. Maksimal {maxFiles} ta. (Rasmlar avtomatik siqiladi).
+      </p>
     </div>
   )
 }
