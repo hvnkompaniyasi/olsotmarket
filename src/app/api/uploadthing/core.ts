@@ -9,8 +9,8 @@ export const ourFileRouter = {
   // "listingImage" endpointi
   listingImage: f({ 
     image: { 
-      maxFileSize: "5MB", // Frontendga moslashtirildi
-      maxFileCount: 10,  // Frontendga moslashtirildi (10 ta rasm)
+      maxFileSize: "8MB", // 5MB o'rniga 8MB (UploadThing qo'llab-quvvatlaydigan qiymat)
+      maxFileCount: 10,   // 10 ta rasm
     } 
   })
     .middleware(async () => {
@@ -21,14 +21,11 @@ export const ourFileRouter = {
         throw new UploadThingError("Faqat tizimga kirganlar rasm yuklay oladi")
       }
       
-      // Metadataga foydalanuvchi ID sini saqlaymiz (keyinchalik bazaga yozish uchun kerak bo'ladi)
+      // Metadataga foydalanuvchi ID sini saqlaymiz
       return { userId: session.user.id }
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      // Konsolga log yozish (xatoliklarni kuzatish uchun)
       console.log(`Rasm yuklandi. Foydalanuvchi: ${metadata.userId}, URL: ${file.url}`)
-      
-      // Frontendga foydalanuvchi ID va rasm URL manzilini qaytaramiz
       return { uploadedBy: metadata.userId, url: file.url }
     }),
 } satisfies FileRouter
