@@ -7,6 +7,7 @@ interface ListingCardLargeProps {
   id: string;
   title: string;
   price: number;
+  currency?: string; // Valyuta qo'shildi
   location: string;
   rooms: number;
   area: number;
@@ -17,7 +18,7 @@ interface ListingCardLargeProps {
 }
 
 export default function ListingCardLarge({
-  id, title, price, location, rooms, area, image, type, seller, isPremium,
+  id, title, price, currency = "UZS", location, rooms, area, image, type, seller, isPremium,
 }: ListingCardLargeProps) {
   return (
     <Link
@@ -37,7 +38,10 @@ export default function ListingCardLarge({
         )}
       </div>
       <div className="flex-1 p-3.5 sm:p-4 min-w-0">
-        <p className="text-lg font-extrabold text-[#0A7C4E] sm:text-xl">{formatPrice(price, type)}</p>
+        {/* formatPrice funksiyasiga currency ni uzatamiz */}
+        <p className="text-lg font-extrabold text-[#0A7C4E] sm:text-xl">
+          {formatPrice(price, type, currency)}
+        </p>
         <p className="mt-0.5 line-clamp-1 text-sm font-bold text-gray-900 dark:text-white">{title || "Sarlavhasiz"}</p>
         <p className="mt-1 flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
           <MapPin className="h-3.5 w-3.5" /> <span className="line-clamp-1">{location}</span>
