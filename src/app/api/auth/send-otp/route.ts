@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { getRedisClient } from "@/lib/redis"
 import { normalizeUzbekPhone } from "@/lib/phone"
+import { sendSmsViaOwnSms } from "@/lib/ownsms" // Yangi import
 
 export async function POST(request: NextRequest) {
   let body: unknown
@@ -29,11 +30,24 @@ export async function POST(request: NextRequest) {
     if (redis.status === "wait") await redis.connect()
     if (redis.status !== "ready") throw new Error("Redis is not ready")
 
+    // 4 xonali kod generatsiya qilamiz
     const code = String(randomInt(0, 10_000)).padStart(4, "0")
+    
+    // Kodni Redis'ga 5 daqiqaga (300 soniya) saqlaymiz
     await redis.set(`otp:${phone}`, code, "EX", 300)
 
+    // --- OwnSMS orqali SMS yuborish ---
+    const message = `Olsot Market: Tasdiqlash kodingiz - ${code}. Kod 5 daqiqa amal qiladi.`
+    const isSent = await sendSmsViaOwnSms(phone, message)
+
+    if (!isSent) {
+      return NextResponse.json({ error: "SMS yuborishda xatolik yuz berdi. Qayta urinib ko'ring." }, { status: 500 })
+    }
+
+    // Muvaffaqiyatli javob
     return NextResponse.json({
       success: true,
+      // Test rejimida kodni ham qaytaramiz (keyinchalik productionda olib tashlanadi)
       ...(process.env.NODE_ENV === "development" ? { devCode: code } : {}),
     })
   } catch (error) {
