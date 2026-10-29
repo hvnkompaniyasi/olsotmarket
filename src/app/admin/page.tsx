@@ -2,55 +2,34 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
 import {
-  Building2, Clock, CheckCircle2, Users, ShieldAlert, CalendarDays, ArrowRight, Activity
+  Building2, Clock, CheckCircle2, Users, ShieldAlert, CalendarDays, ArrowRight, Activity, TrendingUp
 } from "lucide-react"
 
-// 1. SEO VA MAXFIYLIK
 export const metadata: Metadata = {
   title: "Boshqaruv Paneli | Olsot Market",
-  robots: {
-    index: false,
-    follow: false,
-  },
+  robots: { index: false, follow: false },
 }
 
 export const dynamic = "force-dynamic"
 
 const numberFormatter = new Intl.NumberFormat("uz-UZ")
-const dateFormatter = new Intl.DateTimeFormat("uz-UZ", {
-  dateStyle: "medium",
-  timeStyle: "short",
-})
+const dateFormatter = new Intl.DateTimeFormat("uz-UZ", { dateStyle: "medium", timeStyle: "short" })
 
 const statCards = [
-  { label: "Jami e'lonlar", icon: Building2, color: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" },
-  { label: "Kutilayotgan", icon: Clock, color: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" },
-  { label: "Faol e'lonlar", icon: CheckCircle2, color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" },
-  { label: "Foydalanuvchilar", icon: Users, color: "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400" },
-  { label: "Bloklanganlar", icon: ShieldAlert, color: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400" },
-  { label: "Bugungi e'lonlar", icon: CalendarDays, color: "bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400" },
-]
-
-const quickLinks = [
-  { href: "/admin/listings?status=PENDING", label: "Moderatsiya", icon: Clock },
-  { href: "/admin/users", label: "Foydalanuvchilar", icon: Users },
-  { href: "/admin/logs", label: "Audit Loglar", icon: Activity },
+  { label: "Jami e'lonlar", icon: Building2, color: "from-blue-500 to-blue-600" },
+  { label: "Kutilayotgan", icon: Clock, color: "from-amber-400 to-amber-500" },
+  { label: "Faol e'lonlar", icon: CheckCircle2, color: "from-emerald-500 to-emerald-600" },
+  { label: "Foydalanuvchilar", icon: Users, color: "from-purple-500 to-purple-600" },
+  { label: "Bloklanganlar", icon: ShieldAlert, color: "from-red-500 to-red-600" },
+  { label: "Bugungi e'lonlar", icon: CalendarDays, color: "from-cyan-500 to-cyan-600" },
 ]
 
 export default async function AdminDashboardPage() {
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
 
-  // 2. OPTIMALLASHTIRILGAN SO'ROVLAR
   const [
-    totalListings,
-    pendingListingsCount,
-    activeListings,
-    totalUsers,
-    bannedUsers,
-    todayListings,
-    pendingListings,
-    recentLogs,
+    totalListings, pendingListingsCount, activeListings, totalUsers, bannedUsers, todayListings, pendingListings, recentLogs,
   ] = await Promise.all([
     prisma.listing.count(),
     prisma.listing.count({ where: { status: "PENDING" } }),
@@ -58,141 +37,137 @@ export default async function AdminDashboardPage() {
     prisma.user.count(),
     prisma.user.count({ where: { isBanned: true } }),
     prisma.listing.count({ where: { createdAt: { gte: todayStart } } }),
-    prisma.listing.findMany({
-      where: { status: "PENDING" },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { id: true, title: true, region: true, createdAt: true },
-    }),
-    prisma.adminLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        action: true,
-        createdAt: true,
-        admin: { select: { name: true, email: true } }, // include emas, select!
-      },
-    }),
+    prisma.listing.findMany({ where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 4, select: { id: true, title: true, region: true, createdAt: true } }),
+    prisma.adminLog.findMany({ orderBy: { createdAt: "desc" }, take: 4, select: { id: true, action: true, createdAt: true, admin: { select: { name: true, email: true } } } }),
   ])
 
-  const statValues = [
-    totalListings,
-    pendingListingsCount,
-    activeListings,
-    totalUsers,
-    bannedUsers,
-    todayListings,
-  ]
+  const statValues = [totalListings, pendingListingsCount, activeListings, totalUsers, bannedUsers, todayListings]
+
+  // Grafik uchun soxta ma'lumotlar (keyinchalik haqiqiy ma'lumotlar bilan almashtirish mumkin)
+  const chartData = [40, 70, 45, 90, 65, 85, 100];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* STATISTIKA KARTALARI */}
-      <section aria-label="Asosiy statistika" className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+      {/* 1. STATISTIKA KARTALARI (Zamonaviy gradientlar bilan) */}
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         {statCards.map(({ label, icon: Icon, color }, index) => (
-          <article key={label} className={`flex flex-col justify-between rounded-2xl border border-gray-100 p-4 shadow-sm dark:border-zinc-800 ${color}`}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider opacity-80">{label}</p>
-              <Icon className="h-5 w-5 opacity-70" />
+          <article 
+            key={label} 
+            className="group relative overflow-hidden flex flex-col justify-between rounded-2xl bg-white p-5 shadow-sm border border-gray-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+          >
+            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${color} opacity-10 rounded-bl-full transition-transform duration-500 group-hover:scale-110`}></div>
+            <div className="flex items-center justify-between z-10">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</p>
+              <div className={`p-2 rounded-xl bg-gradient-to-br ${color} text-white shadow-sm`}>
+                <Icon className="h-4 w-4" />
+              </div>
             </div>
-            <p className="mt-3 text-2xl font-extrabold">{numberFormatter.format(statValues[index])}</p>
+            <p className="mt-4 text-3xl font-extrabold text-gray-800 z-10">{numberFormatter.format(statValues[index])}</p>
           </article>
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-3">
         
-        {/* SO'NGGI KUTILAYOTGAN E'LONLAR */}
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center justify-between border-b border-gray-100 p-4 dark:border-zinc-800">
-            <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-500" />
-              So&apos;nggi kutilayotgan e&apos;lonlar
+        {/* 2. GRAFIK (Chap tarafda, katta) */}
+        <div className="xl:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Faollik dinamikasi</h2>
+              <p className="text-sm text-gray-500">Oxirgi 7 kunlik e'lonlar statistikasi</p>
+            </div>
+            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+          
+          {/* CSS yordamida chizilgan grafik */}
+          <div className="flex items-end justify-between h-56 gap-2 mt-4">
+            {chartData.map((h, i) => (
+              <div key={i} className="w-full flex flex-col items-center gap-2 group">
+                <div 
+                  className="w-full bg-emerald-100 rounded-t-lg relative group-hover:bg-emerald-300 transition-colors duration-300" 
+                  style={{ height: `${h}%` }}
+                >
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+                    {h} ta e'lon
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400 font-medium">Kun {i+1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. SO'NGGI KUTILAYOTGAN E'LONLAR (O'ng tarafda) */}
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 p-5">
+            <h2 className="font-bold text-gray-800 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-amber-500" /> Kutilayotgan
             </h2>
-            <Link href="/admin/listings?status=PENDING" className="text-xs font-semibold text-[#0A7C4E] hover:underline dark:text-emerald-500">
+            <Link href="/admin/listings?status=PENDING" className="text-xs font-semibold text-emerald-600 hover:underline">
               Barchasi
             </Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-zinc-800/50 dark:text-gray-400">
-                <tr>
-                  <th className="p-3 font-semibold">Sarlavha</th>
-                  <th className="p-3 font-semibold">Hudud</th>
-                  <th className="p-3 font-semibold">Sana</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
-                {pendingListings.map((listing) => (
-                  <tr key={listing.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800/50">
-                    <td className="max-w-[200px] truncate p-3 font-medium text-gray-900 dark:text-white">
-                      {listing.title || "—"}
-                    </td>
-                    <td className="p-3 text-gray-600 dark:text-gray-300">{listing.region}</td>
-                    <td className="whitespace-nowrap p-3 text-xs text-gray-500">
-                      {dateFormatter.format(listing.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-                {pendingListings.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                      Hozircha kutilayotgan e&apos;lonlar yo&apos;q
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* SO'NGGI AUDIT LOGLAR */}
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="border-b border-gray-100 p-4 dark:border-zinc-800">
-            <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-500" />
-              So&apos;nggi admin harakatlari
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-zinc-800">
-            {recentLogs.map((log) => (
-              <div key={log.id} className="flex items-start justify-between gap-4 p-4 transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800/50">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-gray-900 dark:text-white text-sm">{log.action}</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {log.admin.name || log.admin.email || "Noma'lum admin"}
-                  </p>
+          <div className="divide-y divide-gray-50">
+            {pendingListings.map((listing) => (
+              <div key={listing.id} className="p-4 hover:bg-gray-50 transition-colors flex justify-between items-center group">
+                <div className="min-w-0 pr-4">
+                  <p className="truncate font-semibold text-gray-800 text-sm group-hover:text-emerald-600 transition-colors">{listing.title || "—"}</p>
+                  <p className="text-xs text-gray-500 mt-1">{listing.region}</p>
                 </div>
-                <time className="shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
-                  {dateFormatter.format(log.createdAt)}
-                </time>
+                <span className="text-[10px] font-medium bg-amber-50 text-amber-600 px-2 py-1 rounded-md shrink-0">
+                  {dateFormatter.format(listing.createdAt).split(',')[0]}
+                </span>
               </div>
             ))}
-            {recentLogs.length === 0 && (
-              <p className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">Audit loglar mavjud emas</p>
-            )}
+            {pendingListings.length === 0 && <p className="p-8 text-center text-sm text-gray-500">E'lonlar yo'q</p>}
           </div>
         </div>
       </section>
 
-      {/* TEZKOR HAVOLALAR */}
-      <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-4 text-sm font-bold text-gray-900 dark:text-white">Tezkor havolalar</h2>
-        <div className="flex flex-wrap gap-3">
-          {quickLinks.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#0A7C4E] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#086339] hover:-translate-y-0.5 active:scale-95"
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-              <ArrowRight className="h-3 w-3 ml-1 opacity-70" />
+      {/* 4. SO'NGGI AUDIT LOGLAR VA TEZKOR HAVOLALAR */}
+      <section className="grid gap-6 md:grid-cols-2">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <div className="border-b border-gray-100 p-5">
+            <h2 className="font-bold text-gray-800 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-blue-500" /> So'nggi harakatlar
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentLogs.map((log) => (
+              <div key={log.id} className="flex items-start justify-between gap-4 p-4 hover:bg-gray-50 transition-colors">
+                <div className="min-w-0 flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></div>
+                  <div>
+                    <p className="truncate font-semibold text-gray-800 text-sm">{log.action}</p>
+                    <p className="text-xs text-gray-500">{log.admin.name || log.admin.email || "Admin"}</p>
+                  </div>
+                </div>
+                <time className="shrink-0 text-[11px] font-medium text-gray-400">{dateFormatter.format(log.createdAt).split(',')[1]}</time>
+              </div>
+            ))}
+            {recentLogs.length === 0 && <p className="p-8 text-center text-sm text-gray-500">Loglar mavjud emas</p>}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm flex flex-col justify-center bg-gradient-to-br from-emerald-50 to-white">
+          <h2 className="mb-2 text-lg font-bold text-gray-800">Tezkor havolalar</h2>
+          <p className="text-sm text-gray-500 mb-6">Admin sifatida tez-tez ishlatiladigan bo'limlar</p>
+          <div className="flex flex-col gap-3">
+            <Link href="/admin/listings?status=PENDING" className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-emerald-500 hover:shadow-md transition-all group">
+              <span className="font-semibold text-gray-700 group-hover:text-emerald-700">Moderatsiya</span>
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-transform" />
             </Link>
-          ))}
+            <Link href="/admin/users" className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-emerald-500 hover:shadow-md transition-all group">
+              <span className="font-semibold text-gray-700 group-hover:text-emerald-700">Foydalanuvchilar</span>
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
       </section>
+
     </div>
   )
 }
