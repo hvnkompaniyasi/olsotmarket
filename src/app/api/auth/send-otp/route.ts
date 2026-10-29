@@ -2,7 +2,6 @@ import { randomInt } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
 import { getRedisClient } from "@/lib/redis"
 import { normalizeUzbekPhone } from "@/lib/phone"
-import { sendSmsViaOwnSms } from "@/lib/ownsms" // Yangi import
 
 export async function POST(request: NextRequest) {
   let body: unknown
@@ -36,19 +35,14 @@ export async function POST(request: NextRequest) {
     // Kodni Redis'ga 5 daqiqaga (300 soniya) saqlaymiz
     await redis.set(`otp:${phone}`, code, "EX", 300)
 
-    // --- OwnSMS orqali SMS yuborish ---
-    const message = `Olsot Market: Tasdiqlash kodingiz - ${code}. Kod 5 daqiqa amal qiladi.`
-    const isSent = await sendSmsViaOwnSms(phone, message)
+    // --- TEST REJIMI: SMS yuborilmaydi, faqat konsolga chiqariladi ---
+    console.log(`[TEST REJIMI] Telefon: ${phone}, Kod: ${code}`)
 
-    if (!isSent) {
-      return NextResponse.json({ error: "SMS yuborishda xatolik yuz berdi. Qayta urinib ko'ring." }, { status: 500 })
-    }
-
-    // Muvaffaqiyatli javob
+    // Muvaffaqiyatli javob (kodni frontendga ham qaytaramiz)
     return NextResponse.json({
       success: true,
-      // Test rejimida kodni ham qaytaramiz (keyinchalik productionda olib tashlanadi)
-      ...(process.env.NODE_ENV === "development" ? { devCode: code } : {}),
+      message: "Tasdiqlash kodi yaratildi (test rejimi).",
+      devCode: code // Frontendda ko'rsatish uchun
     })
   } catch (error) {
     console.error("OTP yuborish xatosi:", error)
