@@ -32,7 +32,7 @@ export default async function AdminListingDetailPage({ params }: { params: { id:
 
         <div className="flex gap-2 w-full sm:w-auto">
           <Link
-            href={`/edit-listing/${listing.id}`}
+            href={`/admin/listings/${listing.id}/edit`}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold rounded-xl transition-colors"
           >
             <Edit className="h-4 w-4" /> Tahrirlash
