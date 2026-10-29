@@ -1,65 +1,64 @@
 "use client"
 
 import { useState } from "react"
-import { Home, ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
+import { X } from "lucide-react"
 
-export default function ImageGallery({ images, title }: { images: string[]; title: string }) {
-  const [index, setIndex] = useState(0)
-  const hasImages = images && images.length > 0
+export default function ImageGallery({ images }: { images: string[] }) {
+  const [selectedImg, setSelectedImg] = useState<string | null>(null)
 
-  if (!hasImages) {
-    return (
-      <div className="aspect-video bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center">
-        <Home className="h-20 w-20 text-green-300" />
-      </div>
-    )
+  if (!images || images.length === 0) {
+    return <div className="p-4 bg-gray-50 rounded-xl text-center text-gray-500 text-sm">Rasmlar mavjud emas</div>
   }
 
   return (
-    <div className="space-y-3">
-      <div className="relative aspect-video overflow-hidden rounded-2xl bg-gray-100">
-        <Image src={images[index]} alt={`${title} — rasm ${index + 1}`} fill sizes="100vw" className="object-cover transition-opacity duration-200" />
-        {images.length > 1 && (
-          <>
-            <button
-              onClick={() => setIndex((index - 1 + images.length) % images.length)}
-              aria-label="Oldingi rasm"
-              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95"
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-700" />
-            </button>
-            <button
-              onClick={() => setIndex((index + 1) % images.length)}
-              aria-label="Keyingi rasm"
-              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95"
-            >
-              <ChevronRight className="h-5 w-5 text-gray-700" />
-            </button>
-            <div className="absolute bottom-3 right-3 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-full text-white text-xs font-semibold">
-              {index + 1} / {images.length}
+    <>
+      <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>
+        {images.map((img, i) => (
+          <div
+            key={i}
+            className={`relative rounded-xl overflow-hidden cursor-pointer group bg-gray-100 border border-gray-100 ${
+              images.length === 1 ? 'aspect-video' : 'aspect-square'
+            }`}
+            onClick={() => setSelectedImg(img)}
+          >
+            <Image 
+              src={img} 
+              alt={`Rasm ${i + 1}`} 
+              fill 
+              className="object-cover transition-transform duration-300 group-hover:scale-105" 
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 bg-black/50 text-white px-3 py-1 rounded-full text-xs font-medium transition-opacity">
+                Kattalashtirish
+              </span>
             </div>
-          </>
-        )}
+          </div>
+        ))}
       </div>
 
-      {images.length > 1 && (
-        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-          {images.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => setIndex(i)}
-              aria-label={`${i + 1}-rasmni ko'rsatish`}
-              aria-pressed={i === index}
-              className={`relative aspect-square overflow-hidden rounded-lg border-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95 ${
-                i === index ? "border-green-500 shadow-lg" : "border-transparent opacity-70 hover:opacity-100"
-              }`}
-            >
-              <Image src={img} alt="" fill sizes="(max-width: 640px) 25vw, 16vw" className="object-cover" />
-            </button>
-          ))}
+      {/* Lightbox Modal (To'liq ekran) */}
+      {selectedImg && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImg(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+            onClick={(e) => { e.stopPropagation(); setSelectedImg(null); }}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="relative w-full max-w-6xl h-[85vh]">
+            <Image 
+              src={selectedImg} 
+              alt="To'liq ekran rasm" 
+              fill 
+              className="object-contain" 
+            />
+          </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

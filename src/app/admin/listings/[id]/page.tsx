@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
 import { ArrowLeft, CheckCircle, XCircle, Edit, Phone, MapPin, User, Home, BedDouble, Ruler, Calendar, Armchair } from "lucide-react"
 import { updateListingStatus } from "../actions"
+import ImageGallery from "@/components/ImageGallery"
 
 export default async function AdminListingDetailPage({ params }: { params: { id: string } }) {
   const listing = await prisma.listing.findUnique({
@@ -62,15 +62,7 @@ export default async function AdminListingDetailPage({ params }: { params: { id:
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Asosiy ma'lumotlar</h2>
             
-            {listing.images && listing.images.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                {listing.images.map((img, i) => (
-                  <div key={i} className="relative aspect-video rounded-xl overflow-hidden bg-gray-100">
-                    <Image src={img} alt={`Rasm ${i+1}`} fill className="object-cover" />
-                  </div>
-                ))}
-              </div>
-            )}
+            <ImageGallery images={listing.images} />
 
             <div>
               <h3 className="text-2xl font-extrabold text-gray-900">{listing.title}</h3>

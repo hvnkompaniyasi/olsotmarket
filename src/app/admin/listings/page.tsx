@@ -66,17 +66,22 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {(['ALL', 'PENDING', 'ACTIVE', 'REJECTED'] as const).map((s) => (
+        {[
+          { id: 'ALL', label: 'Barchasi' },
+          { id: 'PENDING', label: 'Kutilmoqda' },
+          { id: 'ACTIVE', label: 'Faol' },
+          { id: 'REJECTED', label: 'Rad etilgan' },
+        ].map((tab) => (
           <Link
-            key={s}
-            href={buildUrl({ status: s === 'ALL' ? undefined : s, page: '1' })}
+            key={tab.id}
+            href={buildUrl({ status: tab.id === 'ALL' ? undefined : tab.id, page: '1' })}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              (s === 'ALL' && !status) || status === s
+              (tab.id === 'ALL' && !status) || status === tab.id
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            {s}
+            {tab.label}
           </Link>
         ))}
       </div>
