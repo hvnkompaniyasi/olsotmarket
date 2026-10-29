@@ -12,18 +12,34 @@ export default withAuth(
   async function middleware(req) {
     const pathname = req.nextUrl.pathname;
     const method = req.method;
+    const hostname = req.headers.get('host') || '';
 
-    // 1. CORS (OPTIONS) so'rovlarini chetlab o'tish (Rate Limit yemaslik uchun)
+    // --- 1. DOMENLARNI AJRATISH (senest.uz vs olsotmarket.uz) ---
+    const isAdminDomain = hostname.includes('senest.uz');
+    const isLocalhost = hostname.includes('localhost');
+
+    // Agar admin domeniga kirilgan bo'lsa va /admin bo'lmasa, avtomatik /admin ga yo'naltirish
+    if (isAdminDomain && !pathname.startsWith('/admin') && !pathname.startsWith('/api/')) {
+      const redirectPath = pathname === '/' ? '/admin' : `/admin${pathname}`;
+      return NextResponse.redirect(new URL(redirectPath, req.url));
+    }
+
+    // Agar oddiy domenda (olsotmarket.uz) /admin ga kirishga urinsa, bosh sahifaga qaytarish
+    if (!isAdminDomain && !isLocalhost && pathname.startsWith('/admin')) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+
+    // --- 2. CORS (OPTIONS) ---
     if (method === 'OPTIONS') {
       return NextResponse.next();
     }
 
-    // 2. Healthcheck va ichki API'larni limitdan ozod qilish
+    // --- 3. Healthcheck ---
     if (pathname === '/api/health') {
       return NextResponse.next();
     }
 
-    // 3. Stress test uchun vaqtinchalik chetlab o'tish (faqat dev muhitda)
+    // --- 4. Stress Test ---
     const isStressTest =
       process.env.NODE_ENV !== 'production' &&
       req.headers.get('X-Stress-Test') === 'true';
@@ -31,7 +47,7 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    // 4. API Rate Limiting
+    // --- 5. API Rate Limiting ---
     if (pathname.startsWith('/api/')) {
       if (!isRateLimitConfigured) {
         return NextResponse.json(
@@ -43,7 +59,6 @@ export default withAuth(
       const ip = getClientIp(req.headers.get('x-forwarded-for'));
 
       try {
-        // Umumiy (Global) limit
         const globalLimit = await globalApiLimiter.limit(ip);
         if (!globalLimit.success) {
           return NextResponse.json(
@@ -52,8 +67,6 @@ export default withAuth(
           );
         }
 
-        // Faqat Login/Register (Credentials) uchun qattiqroq limit
-        // NextAuth'ning session, csrf kabi ichki so'rovlariga tegmaymiz
         const isAuthAction = 
           pathname.includes('/api/auth/callback/') || 
           pathname.includes('/api/auth/signin') || 
@@ -70,15 +83,13 @@ export default withAuth(
         }
       } catch (error) {
         console.error('API rate limit check failed:', error);
-        // Agar Redis ishlamay qolsa, tizimni butunlay to'xtatib qo'ymaslik uchun ruxsat beramiz (Fail-open)
-        // Yoki xohlasangiz 503 qaytarishingiz mumkin (Fail-closed)
         return NextResponse.next(); 
       }
 
       return NextResponse.next();
     }
 
-    // 5. Admin Panelni himoyalash (RBAC)
+    // --- 6. Admin Panelni himoyalash (RBAC) ---
     if (pathname.startsWith('/admin')) {
       if (req.nextauth.token?.role !== 'ADMIN') {
         return NextResponse.redirect(new URL('/', req.url));
@@ -87,7 +98,6 @@ export default withAuth(
   },
   {
     callbacks: {
-      // API'lar o'zi ichida (route.ts da) sessiyani tekshiradi, shuning uchun bu yerda faqat sahifalarni tekshiramiz
       authorized: ({ req, token }) => {
         if (req.nextUrl.pathname.startsWith('/api/')) return true;
         return !!token;
@@ -100,6 +110,5 @@ export default withAuth(
 );
 
 export const config = {
-  // Faqat admin va api yo'llari uchun middleware ishlaydi
-  matcher: ['/admin/:path*', '/api/:path*'],
+  matcher: ['/admin/:path*', '/api/:path*', '/'],
 };
