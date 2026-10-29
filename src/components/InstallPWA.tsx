@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Download, X } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -11,6 +12,12 @@ interface BeforeInstallPromptEvent extends Event {
 export default function InstallPWA() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  const pathname = usePathname()
+
+  // Admin sahifalarida bu oynani ko'rsatmaymiz
+  if (pathname.startsWith("/admin")) {
+    return null
+  }
 
   useEffect(() => {
     // Avval o'rnatilgan bo'lsa ko'rsatma
